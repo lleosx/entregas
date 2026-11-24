@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<title>Entregas Lunardelli</title>
+<meta name="theme-color" content="#ff4f12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Entregas">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+/* VOICE: rápido, direto, de quem está na moto com o pedido na mão
+   IDEA: placa de rua + navegador de entregador — o endereço vira um alfinete e uma rota
+   PICTURE: o próprio mapa da cidade, ruas reais e casa por casa, ocupando a tela
+   COLOUR and TYPE: asfalto e papel, laranja de sinalização, azul só para "você"; letra condensada de placa
+   LAYOUT: mapa em tela cheia, busca (ou instrução de curva) no topo, gaveta embaixo */
+:root{color-scheme:light dark;
+--bg:light-dark(#eef0ea,#14171b);--road:light-dark(#ffffff,#2f353d);--major:light-dark(#ffe7a8,#5a4a26);--track:light-dark(#e3dccb,#3a3630);--casing:light-dark(#c4c8bf,#0b0d10);
+--ink:light-dark(#1b1f24,#eceef0);--mut:light-dark(#5d6670,#9aa3ad);--card:light-dark(#ffffff,#1e2228);
+--line:light-dark(#e2e5df,#2d333a);--house:light-dark(#46505c,#aab3bd);--shop:light-dark(#7b4fd6,#b79cff);
+--acc:#ff4f12;--accsoft:light-dark(#ffe3d6,#4a2416);--halo:light-dark(#ffffffd9,#14171bd9);--me:#1a73e8;--route:light-dark(#ff4f12,#ff6a35);
+--cond:"Barlow Condensed","Roboto Condensed","Arial Narrow","Helvetica Neue",system-ui,sans-serif;--sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--sans);overflow:hidden;-webkit-tap-highlight-color:transparent}
+#map{position:fixed;inset:0;touch-action:none}
+#map canvas{width:100%;height:100%;display:block}
+.top{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 10px) 12px 0;pointer-events:none;z-index:3}
+.top>*{pointer-events:auto;max-width:560px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:8px;font:700 15px/1 var(--cond);letter-spacing:.02em;margin-bottom:8px;width:max-content;background:var(--ink);color:var(--bg);padding:6px 10px;border-radius:6px}
+.brand b{background:var(--acc);color:#fff;border-radius:4px;padding:2px 5px}
+.search{display:flex;align-items:center;background:var(--card);border-radius:14px;box-shadow:0 6px 24px #0003,0 0 0 1px var(--line);height:54px;padding:0 6px 0 14px}
+.search svg{flex:none;color:var(--mut)}
+#q{flex:1;border:0;background:none;color:var(--ink);font:500 17px var(--sans);height:100%;padding:0 10px;outline:none}
+#q::-webkit-search-cancel-button{display:none}#q::placeholder{color:var(--mut)}
+.search:focus-within{box-shadow:0 6px 24px #0003,0 0 0 2px var(--acc)}
+.ib{flex:none;width:44px;height:44px;border:0;border-radius:10px;background:none;color:var(--mut);font-size:22px;cursor:pointer;display:grid;place-items:center}
+.ib:focus-visible,.btn:focus-visible,.row:focus-visible,.chip:focus-visible,.fab button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.turn{display:flex;align-items:center;gap:14px;background:#14171b;color:#fff;border-radius:16px;padding:14px 16px;box-shadow:0 8px 28px #0005}
+.turn svg{flex:none;width:52px;height:52px;color:var(--acc)}
+.turn .d{font:700 34px/1 var(--cond);white-space:nowrap}
+.turn .tx{font:600 18px/1.2 var(--sans);text-wrap:balance}
+.fab{position:fixed;right:12px;top:calc(env(safe-area-inset-top) + 130px);display:grid;gap:8px;z-index:2}
+.fab button{width:46px;height:46px;border-radius:12px;border:0;background:var(--card);color:var(--ink);font:600 22px var(--sans);box-shadow:0 3px 12px #0003;cursor:pointer;display:grid;place-items:center}
+.fab button.on{color:var(--me)}
+.sheet{position:fixed;left:0;right:0;bottom:0;margin:0 auto;max-width:560px;background:var(--card);border-radius:20px 20px 0 0;box-shadow:0 -8px 30px #0003;z-index:3;max-height:52vh;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom)}
+.sheet.mini .body{display:none}
+.grab{border:0;background:none;width:100%;height:30px;display:grid;place-items:center;cursor:pointer;flex:none}
+.grab i{width:44px;height:5px;border-radius:3px;background:var(--line)}
+.body{overflow-y:auto;padding:0 16px 16px;overscroll-behavior:contain}
+h2{font:700 26px/1.05 var(--cond);margin:2px 0 4px;text-wrap:balance}
+.sub{color:var(--mut);font-size:15px;margin:0 0 12px}
+.lab{font-size:13px;font-weight:600;color:var(--mut);margin:14px 0 6px}
+.row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;background:none;color:var(--ink);padding:10px 4px;border-bottom:1px solid var(--line);font:inherit;cursor:pointer;min-height:52px}
+.row .pin{flex:none;min-width:30px;height:30px;padding:0 4px;border-radius:8px;background:var(--accsoft);color:var(--acc);display:grid;place-items:center;font:700 14px var(--cond)}
+.row .t{flex:1}.row .t strong{display:block;font-weight:600}.row .t span{font-size:14px;color:var(--mut)}
+.plate{display:inline-flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;background:var(--ink);color:var(--bg);border-radius:10px;padding:8px 14px;margin:2px 0 8px}
+.plate .st{font:700 22px/1.05 var(--cond)}
+.plate .nu{font:700 34px/1 var(--cond);color:var(--acc);white-space:nowrap}
+.note{background:var(--accsoft);border-radius:10px;padding:10px 12px;font-size:15px;margin:6px 0 10px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:54px;border-radius:12px;border:0;font:700 19px var(--cond);text-decoration:none;cursor:pointer;padding:0 14px;text-align:center;width:100%}
+.btn.p{background:var(--acc);color:#fff;margin:10px 0 8px}.btn.s{background:var(--ink);color:var(--bg)}
+.btn.g{background:none;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line);font:600 15px var(--sans);min-height:46px;width:auto}
+.links{display:flex;flex-wrap:wrap;gap:8px}
+.meta{font-size:14px;color:var(--mut);margin:8px 0 0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{min-width:52px;height:40px;border-radius:8px;border:0;background:var(--bg);color:var(--ink);font:700 17px var(--cond);cursor:pointer;padding:0 8px}
+.navsum{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:0 0 4px}
+.navsum .big{font:700 32px/1 var(--cond);white-space:nowrap}.navsum .big small{font-size:18px;color:var(--mut)}
+.foot{font-size:13px;color:var(--mut);margin-top:14px}
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 140px);transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:10px;font-size:15px;z-index:5;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
+.toast.on{opacity:1}
+@media(prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+<div id="map"><canvas id="cv"></canvas></div>
+<div class="top">
+  <div id="srch">
+    <div class="brand"><b>ENTREGAS</b> LUNARDELLI</div>
+    <form class="search" id="f" autocomplete="off">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" inputmode="search" placeholder="Rua e número — ex: Bahia 245" aria-label="Buscar endereço">
+      <button class="ib" type="button" id="clr" aria-label="Limpar" hidden>×</button>
+    </form>
+  </div>
+  <div class="turn" id="turn" hidden><span id="ticon"></span><div><div class="d" id="tdist"></div><div class="tx" id="ttext"></div></div></div>
+</div>
+<div class="fab">
+  <button id="me" aria-label="Minha localização"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
+  <button id="zi" aria-label="Aproximar">+</button><button id="zo" aria-label="Afastar">−</button>
+</div>
+<section class="sheet" id="sheet"><button class="grab" id="grab" aria-label="Abrir ou fechar painel"><i></i></button><div class="body" id="body"><p class="sub">Carregando o mapa…</p></div></section>
+<div class="toast" id="toast" role="status"></div>
+<script>
+{
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d'),body=$('body'),sheet=$('sheet'),q=$('q');
+const ESP={1:'Casa',2:'Domicílio coletivo',3:'Propriedade rural',4:'Escola',5:'Saúde',6:'Comércio / serviço',7:'Em construção',8:'Igreja / templo'};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const N=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+const SMALL=new Set(['de','da','do','dos','das','e','a']);
+const tc=s=>s.toLowerCase().split(' ').map((w,i)=>/^(ii|iii|iv|pr|sn)$/.test(w)?w.toUpperCase():(i&&SMALL.has(w))?w:w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+const TYPES=new Set(['R','RUA','AV','AVE','AVENIDA','EST','ESTR','ESTRADA','ROD','RODOVIA','PC','PCA','PRACA','TRAV','TRAVESSA']);
+const STOP=new Set([...TYPES,'DE','DA','DO','DOS','DAS','E']);
+const NUMW={'7':'SETE','9':'NOVE','15':'QUINZE','20':'VINTE'};
+const keyTok=s=>new Set(N(s).split(' ').map(w=>NUMW[w]||w).filter(w=>w&&!STOP.has(w)));
+const fmtD=m=>m<1000?`${Math.max(10,Math.round(m/10)*10)} m`:`${(m/1000).toFixed(1).replace('.',',')} km`;
+const fmtT=s=>s<60?'1 min':s<3600?`${Math.round(s/60)} min`:`${Math.floor(s/3600)} h ${Math.round(s%3600/60)} min`;
+let D=null,S=[],R=[],sel=null,selStreet=null,est=null;
+let W=0,H=0,dpr=1,sc=1,tx=0,ty=0;
+const lat0=-24.08,lon0=-51.74,KX=Math.cos(lat0*Math.PI/180)*111320,KY=110540;
+const P=(la,lo)=>[(lo-lon0)*KX,-(la-lat0)*KY];
+const toast=m=>{const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),2600)};
+let recent=[];try{recent=JSON.parse(localStorage.getItem('ent-rec')||'[]')}catch(e){}
+const saveRecent=i=>{recent=[i,...recent.filter(x=>x!==i)].slice(0,6);try{localStorage.setItem('ent-rec',JSON.stringify(recent))}catch(e){}};
+
+/* ---------- ruas (OpenStreetMap) e grafo ---------- */
+const SPEED=[16.7,13.9,8.3,5.6,7];const RW=[13,11,8,5,4.5];
+let NX,NY,WAYS=[],ADJ=[],DEG,GRID=new Map();const CELL=120;
+function prepRoads(r){
+  const n=r.p.length;NX=new Float64Array(n);NY=new Float64Array(n);DEG=new Uint8Array(n);
+  r.p.forEach((p,i)=>{const[x,y]=P(p[0]/1e6,p[1]/1e6);NX[i]=x;NY[i]=y});
+  ADJ=Array.from({length:n},()=>[]);
+  r.w.forEach((a,wi)=>{const w={cls:a[0],name:r.nm[a[1]],ow:a[2],ids:a.slice(3)};w.key=keyTok(w.name);WAYS.push(w);
+    for(let k=1;k<w.ids.length;k++){const u=w.ids[k-1],v=w.ids[k],d=Math.hypot(NX[u]-NX[v],NY[u]-NY[v]),c=d/SPEED[w.cls];
+      if(w.ow!==-1)ADJ[u].push(v,c,wi);if(w.ow!==1)ADJ[v].push(u,c,wi);DEG[u]++;DEG[v]++;
+      const x0=Math.min(NX[u],NX[v]),x1=Math.max(NX[u],NX[v]),y0=Math.min(NY[u],NY[v]),y1=Math.max(NY[u],NY[v]);
+      for(let gx=Math.floor(x0/CELL);gx<=Math.floor(x1/CELL);gx++)for(let gy=Math.floor(y0/CELL);gy<=Math.floor(y1/CELL);gy++){const g=gx+','+gy;let l=GRID.get(g);if(!l)GRID.set(g,l=[]);l.push(wi,k)}}});
+}
+function snap(x,y,rad,pref){let best=null,bs=1e18;const r=Math.ceil(rad/CELL),cx=Math.floor(x/CELL),cy=Math.floor(y/CELL);
+  for(let gx=cx-r;gx<=cx+r;gx++)for(let gy=cy-r;gy<=cy+r;gy++){const l=GRID.get(gx+','+gy);if(!l)continue;
+    for(let j=0;j<l.length;j+=2){const w=WAYS[l[j]],k=l[j+1],a=w.ids[k-1],b=w.ids[k];const dx=NX[b]-NX[a],dy=NY[b]-NY[a],L=dx*dx+dy*dy||1;
+      let t=((x-NX[a])*dx+(y-NY[a])*dy)/L;t=Math.max(0,Math.min(1,t));const px=NX[a]+t*dx,py=NY[a]+t*dy,d=Math.hypot(x-px,y-py);if(d>rad)continue;
+      let s=d+(w.cls===4?15:0);if(pref&&pref.size){let m=0;for(const z of pref)if(w.key.has(z))m++;if(m/Math.min(pref.size,w.key.size||1)>=.6)s-=150}
+      if(s<bs){bs=s;best={w:l[j],a,b,t,x:px,y:py,d}}}}
+  return best}
+class Heap{constructor(){this.k=[];this.v=[]}get size(){return this.k.length}
+  push(k,v){const K=this.k,V=this.v;let i=K.length;K.push(k);V.push(v);while(i){const p=(i-1)>>1;if(K[p]<=k)break;K[i]=K[p];V[i]=V[p];i=p}K[i]=k;V[i]=v}
+  pop(){const K=this.k,V=this.v,top=V[0],lk=K.pop(),lv=V.pop();if(K.length){let i=0;const n=K.length;for(;;){let c=2*i+1;if(c>=n)break;if(c+1<n&&K[c+1]<K[c])c++;if(K[c]>=lk)break;K[i]=K[c];V[i]=V[c];i=c}K[i]=lk;V[i]=lv}return top}}
+function route(fx,fy,dest){
+  const s=snap(fx,fy,600);if(!s)return{err:'far'};const e=snap(dest.x,dest.y,400,dest.key);if(!e)return{err:'nodest'};
+  const n=NX.length,dist=new Float64Array(n).fill(Infinity),prev=new Int32Array(n).fill(-1),pw=new Int32Array(n).fill(-1),done=new Uint8Array(n),h=new Heap();
+  const sp=SPEED[WAYS[s.w].cls],ep=SPEED[WAYS[e.w].cls];
+  const seed=(v,c)=>{if(c<dist[v]){dist[v]=c;prev[v]=-2;pw[v]=s.w;h.push(c,v)}};
+  seed(s.a,Math.hypot(s.x-NX[s.a],s.y-NY[s.a])/sp);seed(s.b,Math.hypot(s.x-NX[s.b],s.y-NY[s.b])/sp);
+  const endC=new Map([[e.a,Math.hypot(e.x-NX[e.a],e.y-NY[e.a])/ep],[e.b,Math.hypot(e.x-NX[e.b],e.y-NY[e.b])/ep]]);
+  let best=Infinity,bestN=-1;
+  if(s.w===e.w&&((s.a===e.a&&s.b===e.b)||(s.a===e.b&&s.b===e.a))){best=Math.hypot(s.x-e.x,s.y-e.y)/sp;bestN=-3}
+  while(h.size){const u=h.pop();if(done[u])continue;done[u]=1;const du=dist[u];if(du>=best)break;
+    if(endC.has(u)&&du+endC.get(u)<best){best=du+endC.get(u);bestN=u}
+    const A=ADJ[u];for(let j=0;j<A.length;j+=3){const v=A[j],nd=du+A[j+1];if(nd<dist[v]){dist[v]=nd;prev[v]=u;pw[v]=A[j+2];h.push(nd,v)}}}
+  if(bestN===-1)return{err:'noroute'};
+  const pts=[[s.x,s.y]],ws=[];
+  if(bestN!==-3){const chain=[];for(let v=bestN;v>=0;v=prev[v]){chain.push(v);if(prev[v]===-2)break}chain.reverse();
+    for(const v of chain){pts.push([NX[v],NY[v]]);ws.push(pw[v])}ws.push(e.w)}else ws.push(s.w);
+  pts.push([e.x,e.y]);
+  const nodes=[-1];if(bestN!==-3){const chain=[];for(let v=bestN;v>=0;v=prev[v]){chain.push(v);if(prev[v]===-2)break}chain.reverse();nodes.push(...chain)}nodes.push(-1);
+  const cum=[0];for(let i=1;i<pts.length;i++)cum.push(cum[i-1]+Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]));
+  const rt={pts,ws,nodes,cum,len:cum[cum.length-1],time:best,dest,snapStart:s};rt.man=maneuvers(rt);return rt}
+const bearing=(a,b)=>Math.atan2(b[1]-a[1],b[0]-a[0]);
+function ptAt(rt,d){const c=rt.cum;d=Math.max(0,Math.min(rt.len,d));let i=1;while(i<c.length-1&&c[i]<d)i++;const f=(d-c[i-1])/((c[i]-c[i-1])||1),a=rt.pts[i-1],b=rt.pts[i];return[a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f]}
+function turnAt(rt,k){const d=rt.cum[k];const a=ptAt(rt,d-18),b=rt.pts[k],c=ptAt(rt,d+18);let ang=(bearing(b,c)-bearing(a,b))*180/Math.PI;while(ang>180)ang-=360;while(ang<-180)ang+=360;return ang}
+function turnText(ang){const dir=ang>0?'direita':'esquerda',A=Math.abs(ang);return A<20?['straight','Siga em frente']:A<55?['slight'+(ang>0?'R':'L'),'Mantenha-se à '+dir]:A<150?['turn'+(ang>0?'R':'L'),'Vire à '+dir]:['uturn','Faça o retorno']}
+function maneuvers(rt){
+  const M=[],nm=i=>WAYS[rt.ws[i]].name;const first=nm(0);
+  M.push({at:0,kind:'straight',text:first?`Siga pela ${first}`:'Siga em frente'});
+  for(let k=1;k<rt.pts.length-1;k++){const e0=k-1,e1=k;const n0=nm(e0),n1=nm(e1);const changed=n0!==n1&&(n0||n1);
+    const node=rt.nodes[k];const junc=node>=0&&DEG[node]>2;if(!changed&&!junc)continue;
+    const ang=turnAt(rt,k);if(rt.cum[k]<8||rt.len-rt.cum[k]<8)continue;
+    if(!changed&&Math.abs(ang)<55)continue;if(changed&&!n1&&Math.abs(ang)<35)continue;
+    const[kind,t]=turnText(ang);const text=Math.abs(ang)<20?(n1?`Continue na ${n1}`:'Siga em frente'):(n1?`${t} na ${n1}`:t);
+    const last=M[M.length-1];if(last&&rt.cum[k]-last.at<12&&last.kind!=='straight'){last.text=text;last.kind=kind;continue}
+    M.push({at:rt.cum[k],kind,text})}
+  const L=rt.pts.length,a=rt.pts[Math.max(0,L-3)],b=rt.pts[L-1],h=rt.dest;const cr=(b[0]-a[0])*(h.y-b[1])-(b[1]-a[1])*(h.x-b[0]);
+  const side=Math.hypot(h.x-b[0],h.y-b[1])<3?'':cr>0?' à direita':' à esquerda';
+  M.push({at:rt.len,kind:'arrive',text:`Chegada: nº ${h.n||'s/n'}${side}`,side});return M}
+const ICON={straight:'M12 21V5M6 11l6-6 6 6',turnR:'M6 21v-8a4 4 0 0 1 4-4h9M15 5l4 4-4 4',turnL:'M18 21v-8a4 4 0 0 0-4-4H5M9 5 5 9l4 4',slightR:'M8 21v-7l8-8M10 6h6v6',slightL:'M16 21v-7L8 6M14 6H8v6',uturn:'M8 21V9a4 4 0 0 1 8 0v4M12 10l4 4 4-4',arrive:'M6 21V4M6 4h11l-2 4 2 4H6'};
+const icon=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="${ICON[k]||ICON.straight}"/></svg>`;
+
+/* ---------- endereços (IBGE) ---------- */
+function prep(){
+  S=D.s.map((n,i)=>({i,name:n,disp:tc(n),norm:N(n),tok:N(n).split(' '),key:keyTok(n),recs:[]}));
+  R=D.r.map((a,i)=>{const la=a[7]/1e6,lo=a[8]/1e6,[x,y]=P(la,lo);const r={i,s:a[0],n:a[1],mod:a[2],comp:a[3],loc:D.l[a[4]],esp:a[5],est:a[6],la,lo,x,y,estN:N(a[6])};S[r.s].recs.push(r);return r});
+}
+function fit(list,pad=60){
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(const r of list){x0=Math.min(x0,r.x);x1=Math.max(x1,r.x);y0=Math.min(y0,r.y);y1=Math.max(y1,r.y)}
+  const area=viewArea();sc=Math.min(6,Math.max(.01,Math.min((area.w-pad)/Math.max(x1-x0,40),(area.h-pad)/Math.max(y1-y0,40))));
+  tx=area.cx-(x0+x1)/2*sc;ty=area.cy-(y0+y1)/2*sc;draw()}
+function town(){const c=R.filter(r=>r.loc==='CENTRO'),m=a=>a.sort((x,y)=>x-y)[a.length>>1];const mx=m(c.map(r=>r.x)),my=m(c.map(r=>r.y));return c.filter(r=>Math.hypot(r.x-mx,r.y-my)<1100)}
+function viewArea(){const tb=(nav?$('turn'):$('f')).getBoundingClientRect().bottom+8,bot=sheet.getBoundingClientRect().top-8;const h=Math.max(120,bot-tb);return{w:W,h,cx:W/2,cy:tb+h/2}}
+function centerOn(x,y,minSc){if(minSc&&sc<minSc)sc=minSc;const a=viewArea();tx=a.cx-x*sc;ty=a.cy-y*sc;draw()}
+function zoomAt(f,px,py){const ns=Math.min(12,Math.max(.01,sc*f));tx=px-(px-tx)*ns/sc;ty=py-(py-ty)*ns/sc;sc=ns;draw()}
+
+/* ---------- desenho ---------- */
+const probe=document.createElement('i');probe.style.cssText='position:absolute;width:0;height:0;visibility:hidden';document.body.appendChild(probe);
+const col=k=>{probe.style.color=`var(${k})`;return getComputedStyle(probe).color};
+function resize(){dpr=window.devicePixelRatio||1;W=cv.clientWidth;H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;draw()}
+let raf=0;function draw(){if(!raf)raf=requestAnimationFrame(paint)}
+function paint(){
+  raf=0;if(!D||!NX)return;const V=col;
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle=V('--bg');ctx.fillRect(0,0,W,H);
+  const X=x=>x*sc+tx,Y=y=>y*sc+ty;ctx.lineCap='round';ctx.lineJoin='round';
+  const vx0=-tx/sc-50,vx1=(W-tx)/sc+50,vy0=-ty/sc-50,vy1=(H-ty)/sc+50;
+  const vis=WAYS.map(w=>{for(const i of w.ids)if(NX[i]>vx0&&NX[i]<vx1&&NY[i]>vy0&&NY[i]<vy1)return true;return false});
+  const path=w=>{ctx.beginPath();ctx.moveTo(X(NX[w.ids[0]]),Y(NY[w.ids[0]]));for(let k=1;k<w.ids.length;k++)ctx.lineTo(X(NX[w.ids[k]]),Y(NY[w.ids[k]]))};
+  const width=w=>Math.max(w.cls<2?2.6:w.cls===4?1.2:1.8,Math.min(26,RW[w.cls]*sc));
+  const cas=V('--casing'),road=V('--road'),major=V('--major'),track=V('--track');
+  for(const cls of [4,3,2,1,0]){WAYS.forEach((w,i)=>{if(w.cls!==cls||!vis[i])return;path(w);ctx.strokeStyle=cas;ctx.lineWidth=width(w)+2;ctx.stroke()});
+    WAYS.forEach((w,i)=>{if(w.cls!==cls||!vis[i])return;path(w);ctx.strokeStyle=w.cls<2?major:w.cls===4?track:road;ctx.lineWidth=width(w);ctx.stroke()})}
+  if(rt){ctx.beginPath();rt.pts.forEach((p,i)=>i?ctx.lineTo(X(p[0]),Y(p[1])):ctx.moveTo(X(p[0]),Y(p[1])));ctx.strokeStyle='#0006';ctx.lineWidth=Math.max(8,Math.min(20,7*sc))+3;ctx.stroke();ctx.strokeStyle=V('--route');ctx.lineWidth=Math.max(8,Math.min(20,7*sc));ctx.stroke()}
+  const rad=Math.max(2,Math.min(6,2.2*sc));const house=V('--house'),shop=V('--shop'),acc=V('--acc');
+  if(sc>.12)for(const r of R){const x=X(r.x),y=Y(r.y);if(x<-10||y<-10||x>W+10||y>H+10)continue;
+    ctx.fillStyle=selStreet&&r.s===selStreet.i?acc:(r.est||(r.esp>=4&&r.esp!==7)?shop:house);ctx.beginPath();ctx.arc(x,y,rad,0,7);ctx.fill()}
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  const halo=V('--halo'),ink=V('--ink'),mut=V('--mut'),cond=getComputedStyle(document.documentElement).getPropertyValue('--cond');
+  if(sc>.3){ctx.font=`600 ${sc>1.5?14:12}px ${getComputedStyle(document.body).fontFamily}`;const boxes=[],seen=new Map();
+    WAYS.forEach((w,i)=>{if(!w.name||!vis[i]||(w.cls===4&&sc<.8))return;let bl=0,bk=0;for(let k=1;k<w.ids.length;k++){const l=Math.hypot(NX[w.ids[k]]-NX[w.ids[k-1]],NY[w.ids[k]]-NY[w.ids[k-1]]);if(l>bl){bl=l;bk=k}}
+      const tw=ctx.measureText(w.name).width;if(bl*sc<tw*.9)return;const a=w.ids[bk-1],b=w.ids[bk];const mx=X((NX[a]+NX[b])/2),my=Y((NY[a]+NY[b])/2);if(mx<0||my<0||mx>W||my>H)return;
+      const prevL=seen.get(w.name);if(prevL&&Math.hypot(prevL[0]-mx,prevL[1]-my)<tw*2)return;
+      const bb=[mx-tw/2-4,my-9,mx+tw/2+4,my+9];if(boxes.some(c=>c[0]<bb[2]&&bb[0]<c[2]&&c[1]<bb[3]&&bb[1]<c[3]))return;boxes.push(bb);seen.set(w.name,[mx,my]);
+      let ang=Math.atan2(NY[b]-NY[a],NX[b]-NX[a]);if(ang>Math.PI/2)ang-=Math.PI;if(ang<-Math.PI/2)ang+=Math.PI;
+      ctx.save();ctx.translate(mx,my);ctx.rotate(ang);ctx.lineWidth=4;ctx.strokeStyle=halo;ctx.strokeText(w.name,0,0);ctx.fillStyle=mut;ctx.fillText(w.name,0,0);ctx.restore()})}
+  if(sc>1.7){ctx.font=`700 13px ${cond}`;const grid=new Set();
+    for(const r of R){if(!r.n)continue;const x=X(r.x),y=Y(r.y)-rad-8;if(x<0||y<0||x>W||y>H)continue;const k=Math.round(x/26)+','+Math.round(y/16);if(grid.has(k))continue;grid.add(k);
+      ctx.lineWidth=3;ctx.strokeStyle=halo;ctx.strokeText(r.n,x,y);ctx.fillStyle=ink;ctx.fillText(r.n,x,y)}}
+  const target=rt?rt.dest:(est||sel);if(target){const x=X(target.x),y=Y(target.y);
+    ctx.fillStyle='#0004';ctx.beginPath();ctx.ellipse(x,y+2,7,3,0,0,7);ctx.fill();
+    ctx.fillStyle=acc;ctx.beginPath();ctx.moveTo(x,y);ctx.bezierCurveTo(x-4,y-10,x-15,y-18,x-15,y-30);ctx.arc(x,y-30,15,Math.PI,0);ctx.bezierCurveTo(x+15,y-18,x+4,y-10,x,y);ctx.fill();
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y-30,9.5,0,7);ctx.fill();ctx.fillStyle=acc;ctx.font=`700 12px ${cond}`;ctx.fillText(target.n||'SN',x,y-29.5);
+    if(target.estimated){ctx.setLineDash([4,4]);ctx.strokeStyle=acc;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,16,0,7);ctx.stroke();ctx.setLineDash([])}}
+  if(me){const x=X(me.x),y=Y(me.y);ctx.fillStyle='#1a73e826';ctx.beginPath();ctx.arc(x,y,Math.max(14,Math.min(120,me.acc*sc)),0,7);ctx.fill();
+    if(me.hd!=null){ctx.save();ctx.translate(x,y);ctx.rotate(me.hd);ctx.fillStyle='#1a73e8';ctx.beginPath();ctx.moveTo(0,-22);ctx.lineTo(9,-6);ctx.lineTo(-9,-6);ctx.closePath();ctx.fill();ctx.restore()}
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,10,0,7);ctx.fill();ctx.fillStyle='#1a73e8';ctx.beginPath();ctx.arc(x,y,7,0,7);ctx.fill()}
+}
+
+/* ---------- telas ---------- */
+const addrLine=r=>`${S[r.s].disp}, ${r.n?r.n:'s/n'}${r.mod?' '+r.mod:''}`;
+const subLine=r=>[r.est?tc(r.est):ESP[r.esp]||'',r.comp?tc(r.comp):'',tc(r.loc)].filter(Boolean).join(' · ');
+const rowHTML=(r,tag)=>`<button class="row" data-r="${r.i}"><span class="pin">${esc(tag||'•')}</span><span class="t"><strong>${esc(addrLine(r))}</strong><span>${esc(subLine(r))}</span></span></button>`;
+function streetRow(st){const nums=st.recs.filter(r=>r.n).map(r=>r.n);const rng=nums.length?`nº ${Math.min(...nums)} a ${Math.max(...nums)}`:'sem números';
+  return `<button class="row" data-st="${st.i}"><span class="pin">${st.recs.length}</span><span class="t"><strong>${esc(st.disp)}</strong><span>${esc(rng+' · '+tc(st.recs[0].loc))}</span></span></button>`}
+function home(){sel=null;est=null;selStreet=null;
+  const rec=recent.map(i=>R[i]).filter(Boolean);
+  body.innerHTML=`<h2>Para onde é a entrega?</h2><p class="sub">Digite a rua e o número. Toque em qualquer ponto do mapa para ver o endereço.</p>
+  ${rec.length?`<div class="lab">Buscados recentemente</div>${rec.map(r=>rowHTML(r,r.n||'SN')).join('')}`:''}
+  <div class="lab">Todas as ruas (${S.length})</div>${[...S].sort((a,b)=>a.disp.localeCompare(b.disp)).map(streetRow).join('')}
+  <p class="foot">${R.length.toLocaleString('pt-BR')} endereços do Censo 2022 do IBGE (CNEFE) e ruas do OpenStreetMap. Casas construídas depois de 2022 não aparecem; nesses casos o app estima a posição pelos vizinhos.</p>`;
+  draw()}
+function parse(text){let t=N(text).split(' ').filter(Boolean);let num=null;
+  if(t.length>1&&/^\d+$/.test(t[t.length-1]))num=+t.pop();
+  let name=t.filter(w=>!TYPES.has(w));if(!name.length)name=t;return{name,num}}
+function matchStreets(tok){if(!tok.length)return[];const full=tok.join(' ');
+  return S.map(st=>{if(!tok.every(q=>st.tok.some(w=>w.startsWith(q))))return null;let s2=st.recs.length/1000;if(st.norm.includes(full))s2+=5;if(st.tok.some(w=>w===tok[0]))s2+=2;return[st,s2]}).filter(Boolean).sort((a,b)=>b[1]-a[1]).map(a=>a[0])}
+function search(text){est=null;const{name,num}=parse(text);if(!name.length){home();return}
+  const sts=matchStreets(name);let h='';
+  if(num!=null&&sts.length){
+    for(const st of sts.slice(0,4)){const ex=st.recs.filter(r=>r.n===num);
+      if(ex.length)h+=`<div class="lab">${esc(st.disp)}</div>`+ex.map(r=>rowHTML(r,r.n)).join('');
+      else{const near=nearby(st,num);if(near.length)h+=`<div class="lab">${esc(st.disp)} — nº ${num} não está no cadastro</div><button class="row" data-est="${st.i}:${num}"><span class="pin">≈</span><span class="t"><strong>${esc(st.disp)}, ${num} (posição estimada)</strong><span>Calculada pelos vizinhos do mesmo lado da rua</span></span></button>`+near.map(r=>rowHTML(r,r.n)).join('')}}}
+  if(num==null||!h){if(sts.length)h+=`<div class="lab">Ruas</div>`+sts.slice(0,12).map(streetRow).join('')}
+  if(num==null){const places=R.filter(r=>r.est&&name.every(q=>r.estN.split(' ').some(w=>w.startsWith(q)))).slice(0,10);if(places.length)h+=`<div class="lab">Lugares</div>`+places.map(r=>rowHTML(r,r.n||'SN')).join('')}
+  body.innerHTML=h||`<h2>Nada encontrado</h2><p class="sub">Confira o nome da rua. Dá pra digitar só um pedaço, como “tiber” para Rua Tiberio José de Almeida Filho.</p>`;
+  sheet.classList.remove('mini');
+  if(sts.length===1&&num==null){selStreet=sts[0];fit(sts[0].recs,90)}else{selStreet=null;draw()}}
+function nearby(st,num){const w=st.recs.filter(r=>r.n).sort((a,b)=>Math.abs(a.n-num)-Math.abs(b.n-num));const out=[],seen=new Set();for(const r of w){if(seen.has(r.n))continue;seen.add(r.n);out.push(r);if(out.length>=3)break}return out}
+function estimate(st,num){const same=st.recs.filter(r=>r.n&&r.n%2===num%2);const pool=same.length>=2?same:st.recs.filter(r=>r.n);
+  let lo=null,hi=null;for(const r of pool){if(r.n<num&&(!lo||r.n>lo.n))lo=r;if(r.n>num&&(!hi||r.n<hi.n))hi=r}
+  const mk=(x,y,la,lon,a,b)=>({x,y,la,lo:lon,n:num,s:st.i,a,b,estimated:true,key:st.key,label:`${st.disp}, ${num}`});
+  if(lo&&hi){const f=(num-lo.n)/(hi.n-lo.n);return mk(lo.x+(hi.x-lo.x)*f,lo.y+(hi.y-lo.y)*f,lo.la+(hi.la-lo.la)*f,lo.lo+(hi.lo-lo.lo)*f,lo,hi)}
+  const r=lo||hi;return r?mk(r.x,r.y,r.la,r.lo,r,null):null}
+const sv=(la,lo)=>`<a class="btn g" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${la.toFixed(6)},${lo.toFixed(6)}" target="_blank" rel="noopener">Ver a fachada (Street View)</a>`;
+let cur=null;
+function showRec(r){sel=r;est=null;selStreet=S[r.s];saveRecent(r.i);
+  cur={x:r.x,y:r.y,la:r.la,lo:r.lo,n:r.n,key:S[r.s].key,label:addrLine(r)};
+  const same=R.filter(o=>o!==r&&Math.abs(o.la-r.la)<1e-6&&Math.abs(o.lo-r.lo)<1e-6);
+  body.innerHTML=`<div class="plate"><span class="st">${esc(S[r.s].disp)}</span><span class="nu">${r.n?esc(r.n):'s/n'}${r.mod?' '+esc(r.mod):''}</span></div>
+  <p class="sub">${esc(subLine(r))}</p>${!r.n?'<div class="note">Este endereço está sem número no cadastro. Confira pelo ponto no mapa.</div>':''}
+  <button class="btn p" data-go="1">Iniciar rota até aqui</button>
+  <div class="links">${sv(r.la,r.lo)}<button class="btn g" data-st="${r.s}">Números da rua</button><button class="btn g" data-home="1">Nova busca</button></div>
+  ${same.length?`<div class="lab">No mesmo ponto</div>${same.slice(0,6).map(o=>rowHTML(o,o.n||'SN')).join('')}`:''}`;
+  sheet.classList.remove('mini');body.scrollTop=0;centerOn(r.x,r.y,3)}
+function showEst(st,num){const e=estimate(st,num);if(!e)return;est=e;sel=null;selStreet=st;cur=e;
+  body.innerHTML=`<div class="plate"><span class="st">${esc(st.disp)}</span><span class="nu">${num}</span></div>
+  <div class="note">O nº ${num} não está no cadastro de 2022 (casa nova ou número trocado). O ponto foi estimado ${e.b?`entre o nº ${e.a.n} e o nº ${e.b.n}`:`junto ao nº ${e.a.n}, o mais próximo`}.</div>
+  <button class="btn p" data-go="1">Iniciar rota até aqui</button>
+  <div class="links">${sv(e.la,e.lo)}<button class="btn g" data-st="${st.i}">Números da rua</button><button class="btn g" data-home="1">Nova busca</button></div>`;
+  sheet.classList.remove('mini');body.scrollTop=0;centerOn(e.x,e.y,3)}
+function showStreet(st){sel=null;est=null;selStreet=st;
+  const nums=[...new Map(st.recs.filter(r=>r.n).sort((a,b)=>a.n-b.n).map(r=>[r.n,r])).values()];const sn=st.recs.filter(r=>!r.n);
+  const odd=nums.filter(r=>r.n%2),even=nums.filter(r=>r.n%2===0);const chips=l=>`<div class="chips">${l.map(r=>`<button class="chip" data-r="${r.i}">${r.n}</button>`).join('')}</div>`;
+  body.innerHTML=`<h2>${esc(st.disp)}</h2><p class="sub">${st.recs.length} endereços · ${esc(tc(st.recs[0].loc))}</p>
+  ${odd.length?`<div class="lab">Lado ímpar</div>${chips(odd)}`:''}${even.length?`<div class="lab">Lado par</div>${chips(even)}`:''}
+  ${sn.length?`<div class="lab">Sem número (${sn.length})</div>${sn.slice(0,40).map(r=>rowHTML(r,'SN')).join('')}`:''}
+  <div class="links" style="margin-top:12px"><button class="btn g" data-home="1">Nova busca</button></div>`;
+  sheet.classList.remove('mini');body.scrollTop=0;fit(st.recs,90)}
+
+/* ---------- GPS e navegação ---------- */
+let me=null,watch=null,follow=false,nav=false,rt=null,pending=null,offCount=0,prog=0,voice=true,spoke={},lock=null,lastFix=null;
+try{voice=localStorage.getItem('ent-voz')!=='0'}catch(e){}
+function startGPS(){if(watch!=null)return true;if(!('geolocation' in navigator)){toast('Este aparelho não tem GPS disponível.');return false}
+  try{watch=navigator.geolocation.watchPosition(onFix,err=>{if(err.code===1){try{navigator.geolocation.clearWatch(watch)}catch(x){}watch=null;$('me').classList.remove('on');toast('Permita o acesso à localização nas configurações do navegador.');if(pending){pending=null;endNav(true)}}
+    else if(!me)toast('Procurando sinal de GPS… vá para um lugar aberto.')},{enableHighAccuracy:true,maximumAge:2000,timeout:20000})}
+  catch(e){toast('A localização está bloqueada aqui.');return false}
+  $('me').classList.add('on');return true}
+function onFix(p){const[x,y]=P(p.coords.latitude,p.coords.longitude);let hd=null;
+  if(p.coords.heading!=null&&!isNaN(p.coords.heading)&&(p.coords.speed||0)>1)hd=p.coords.heading*Math.PI/180;
+  else if(lastFix&&Math.hypot(x-lastFix[0],y-lastFix[1])>4)hd=Math.atan2(x-lastFix[0],-(y-lastFix[1]));else if(me)hd=me.hd;
+  if(!lastFix||Math.hypot(x-lastFix[0],y-lastFix[1])>4)lastFix=[x,y];
+  me={x,y,acc:p.coords.accuracy||20,hd};
+  if(pending){const d=pending;pending=null;beginRoute(d)}
+  else if(nav)progress();
+  if(follow)centerOn(me.x,me.y);else draw()}
+function say(t){if(!voice||!('speechSynthesis' in window))return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='pt-BR';u.rate=1.05;speechSynthesis.speak(u)}catch(e){}}
+async function wake(on){try{if(on&&'wakeLock' in navigator)lock=await navigator.wakeLock.request('screen');else if(lock){await lock.release();lock=null}}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(nav&&document.visibilityState==='visible')wake(true)});
+function goTo(dest){if(!NX)return;
+  if('speechSynthesis' in window&&voice){try{speechSynthesis.speak(new SpeechSynthesisUtterance(''))}catch(e){}}
+  if(!startGPS())return;nav=true;$('srch').hidden=true;$('turn').hidden=false;$('ticon').innerHTML=icon('straight');$('tdist').textContent='GPS';$('ttext').textContent='Procurando seu sinal…';
+  if(me&&me.acc<200&&Date.now()-0>0)beginRoute(dest);else pending=dest;
+  navPanel(dest,null)}
+function beginRoute(dest){const r=route(me.x,me.y,dest);
+  if(r.err){toast(r.err==='far'?'Você está fora da área do mapa de Lunardelli.':'Não encontrei um caminho até esse endereço.');endNav(true);return}
+  rt=r;prog=0;offCount=0;spoke={};follow=true;wake(true);sc=Math.max(sc,2.6);
+  const m=rt.man[0];say(`${m.text}. ${fmtD(rt.len)} até ${dest.label||'o destino'}.`);spoke[0]=2;progress();centerOn(me.x,me.y)}
+function progress(){if(!rt||!me)return;
+  let best=1e9,bi=prog,bt=0;const from=Math.max(1,prog-2),to=Math.min(rt.pts.length-1,prog+60);
+  for(let i=from;i<=to;i++){const a=rt.pts[i-1],b=rt.pts[i],dx=b[0]-a[0],dy=b[1]-a[1],L=dx*dx+dy*dy||1;let t=((me.x-a[0])*dx+(me.y-a[1])*dy)/L;t=Math.max(0,Math.min(1,t));const d=Math.hypot(me.x-a[0]-t*dx,me.y-a[1]-t*dy);if(d<best){best=d;bi=i;bt=t}}
+  const tol=Math.max(35,Math.min(80,me.acc));
+  if(best>tol){if(++offCount>=2&&me.acc<60){toast('Recalculando a rota…');say('Recalculando');const d=rt.dest;const r=route(me.x,me.y,d);if(!r.err){rt=r;prog=0;offCount=0;spoke={}}}}else offCount=0;
+  prog=bi;const along=rt.cum[bi-1]+bt*(rt.cum[bi]-rt.cum[bi-1]);const left=Math.max(0,rt.len-along);
+  const dDest=Math.hypot(me.x-rt.dest.x,me.y-rt.dest.y);
+  if(dDest<25||left<15){arrive();return}
+  let mi=rt.man.findIndex(m=>m.at>along+4);if(mi<0)mi=rt.man.length-1;const m=rt.man[mi],dm=m.at-along;
+  $('ticon').innerHTML=icon(m.kind);$('tdist').textContent=fmtD(dm);$('ttext').textContent=m.text;
+  if(dm<=200&&dm>70&&!spoke[mi]){spoke[mi]=1;say(`Em ${fmtD(dm).replace(' m',' metros').replace(' km',' quilômetros')}, ${m.text}`)}
+  else if(dm<=40&&spoke[mi]!==2){spoke[mi]=2;say(m.kind==='arrive'?m.text:`Agora, ${m.text}`)}
+  navPanel(rt.dest,{left,time:rt.time*left/rt.len});draw()}
+function navPanel(dest,info){
+  body.innerHTML=`<div class="navsum"><span class="big">${info?fmtD(info.left):'…'}</span><span class="big"><small>${info?fmtT(info.time):''}</small></span></div>
+  <p class="sub">até <strong>${esc(dest.label||'o destino')}</strong></p>
+  <div class="links"><button class="btn g" data-voz="1">${voice?'Voz ligada':'Voz desligada'}</button><button class="btn g" data-fol="1">Centralizar em mim</button><button class="btn g" data-end="1">Encerrar rota</button></div>`;
+  sheet.classList.remove('mini')}
+function arrive(){const d=rt.dest,side=rt.man[rt.man.length-1].side||'';say(`Você chegou. Número ${d.n||'sem número'}${side}.`);endNav(false);
+  body.innerHTML=`<h2>Você chegou!</h2><div class="plate"><span class="st">${esc(d.label||'')}</span></div><p class="sub">A casa fica${esc(side||' aqui')}.</p>
+  <div class="links">${sv(d.la,d.lo)}<button class="btn g" data-home="1">Nova busca</button></div>`;sel=null;est=null;cur=null}
+function endNav(back){nav=false;rt=null;pending=null;follow=false;wake(false);$('turn').hidden=true;$('srch').hidden=false;try{speechSynthesis.cancel()}catch(e){}
+  if(back){if(sel)showRec(sel);else if(est)showEst(S[est.s],est.n);else home()}draw()}
+
+/* ---------- eventos ---------- */
+body.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.r)showRec(R[+b.dataset.r]);else if(b.dataset.est){const[s,n]=b.dataset.est.split(':');showEst(S[+s],+n)}
+  else if(b.dataset.st)showStreet(S[+b.dataset.st]);else if(b.dataset.home){q.value='';$('clr').hidden=true;home();fit(town())}
+  else if(b.dataset.go){if(cur)goTo(cur)}else if(b.dataset.end)endNav(true);
+  else if(b.dataset.fol){follow=true;if(me)centerOn(me.x,me.y)}
+  else if(b.dataset.voz){voice=!voice;try{localStorage.setItem('ent-voz',voice?'1':'0')}catch(x){}b.textContent=voice?'Voz ligada':'Voz desligada';if(!voice)try{speechSynthesis.cancel()}catch(x){}}});
+let qt=0;q.addEventListener('input',()=>{$('clr').hidden=!q.value;clearTimeout(qt);qt=setTimeout(()=>search(q.value),180)});
+$('f').addEventListener('submit',e=>{e.preventDefault();q.blur();search(q.value);const f=body.querySelector('.row[data-r],.row[data-est]');if(f&&parse(q.value).num!=null)f.click()});
+$('clr').addEventListener('click',()=>{q.value='';$('clr').hidden=true;home();q.focus()});
+$('grab').addEventListener('click',()=>sheet.classList.toggle('mini'));
+$('zi').addEventListener('click',()=>zoomAt(1.8,W/2,viewArea().cy));$('zo').addEventListener('click',()=>zoomAt(1/1.8,W/2,viewArea().cy));
+$('me').addEventListener('click',()=>{if(!startGPS())return;follow=true;if(me)centerOn(me.x,me.y,2);else toast('Procurando seu sinal de GPS…')});
+const ptrs=new Map();let down=null,pinch=null;const mapEl=$('map');
+mapEl.addEventListener('pointerdown',e=>{mapEl.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);if(ptrs.size===1)down={x:e.clientX,y:e.clientY,t:Date.now(),moved:false};else{down&&(down.moved=true);const[a,b]=[...ptrs.values()];pinch={d:Math.hypot(a[0]-b[0],a[1]-b[1])}}});
+mapEl.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId))return;const prev=ptrs.get(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);
+  if(ptrs.size===2&&pinch){const[a,b]=[...ptrs.values()];const d=Math.hypot(a[0]-b[0],a[1]-b[1]);tx+=(e.clientX-prev[0])/2;ty+=(e.clientY-prev[1])/2;zoomAt(d/pinch.d,(a[0]+b[0])/2,(a[1]+b[1])/2);pinch.d=d;follow=false}
+  else if(ptrs.size===1){tx+=e.clientX-prev[0];ty+=e.clientY-prev[1];if(down&&Math.hypot(e.clientX-down.x,e.clientY-down.y)>8){down.moved=true;follow=false}draw()}});
+const up=e=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(e.type==='pointerup'&&ptrs.size===0&&down&&!down.moved&&Date.now()-down.t<500)tap(e.clientX,e.clientY);if(ptrs.size===0)down=null};
+mapEl.addEventListener('pointerup',up);mapEl.addEventListener('pointercancel',up);
+mapEl.addEventListener('wheel',e=>{e.preventDefault();follow=false;zoomAt(Math.exp(-e.deltaY*.0015),e.clientX,e.clientY)},{passive:false});
+let lastTap=0;
+function tap(px,py){const now=Date.now();if(now-lastTap<300){zoomAt(2,px,py);lastTap=0;return}lastTap=now;if(nav)return;
+  let best=null,bd=22;for(const r of R){const d=Math.hypot(r.x*sc+tx-px,r.y*sc+ty-py);if(d<bd){bd=d;best=r}}
+  if(best)setTimeout(()=>{if(lastTap===now)showRec(best)},260)}
+new ResizeObserver(resize).observe(cv);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',draw);
+new MutationObserver(draw).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+Promise.all([fetch('dados.json').then(r=>r.json()),fetch('ruas.json').then(r=>r.json())]).then(([d,r])=>{D=d;prep();prepRoads(r);resize();home();fit(town())})
+  .catch(()=>{body.innerHTML='<h2>Não consegui carregar o mapa</h2><p class="sub">Abra o app uma vez com internet para ele guardar o mapa no celular.</p>'});
+try{if('serviceWorker' in navigator&&location.protocol==='https:'&&!location.hostname.endsWith('claude.ai')&&!location.hostname.includes('claudeusercontent'))navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}
+window.__app={route:(a,b)=>route(a,b,cur),get rt(){return rt},P,S,R,showRec,get cur(){return cur}};
+}
+</script>
+</body>
+</html>
