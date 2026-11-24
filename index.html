@@ -47,9 +47,9 @@ body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--sans);overflow:h
 .fab{position:fixed;right:12px;top:calc(env(safe-area-inset-top) + 130px);display:grid;gap:8px;z-index:2}
 .fab button{width:46px;height:46px;border-radius:12px;border:0;background:var(--card);color:var(--ink);font:600 22px var(--sans);box-shadow:0 3px 12px #0003;cursor:pointer;display:grid;place-items:center}
 .fab button.on{color:var(--me)}#needle{transition:none}#cmp.on{box-shadow:0 3px 12px #0003,inset 0 0 0 2px var(--me)}
-.sheet{position:fixed;left:0;right:0;bottom:0;margin:0 auto;max-width:560px;background:var(--card);border-radius:20px 20px 0 0;box-shadow:0 -8px 30px #0003;z-index:3;max-height:52vh;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom)}
-.sheet.mini .body{display:none}
-.grab{border:0;background:none;width:100%;height:30px;display:grid;place-items:center;cursor:pointer;flex:none}
+.sheet{position:fixed;left:0;right:0;bottom:0;margin:0 auto;max-width:560px;background:var(--card);border-radius:20px 20px 0 0;box-shadow:0 -8px 30px #0003;z-index:3;height:var(--sh,52vh);transition:height .28s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom)}
+.sheet.drag{transition:none}.sheet.mini .body{overflow:hidden}
+.grab{border:0;background:none;width:100%;height:36px;display:grid;place-items:center;cursor:grab;flex:none;touch-action:none}
 .grab i{width:44px;height:5px;border-radius:3px;background:var(--line)}
 .body{overflow-y:auto;padding:0 16px 16px;overscroll-behavior:contain}
 h2{font:700 26px/1.05 var(--cond);margin:2px 0 4px;text-wrap:balance}
@@ -203,7 +203,7 @@ function fit(list,pad=60,instant){const c=Math.cos(rot),s=Math.sin(rot);
   const rx=(x0+x1)/2,ry=(y0+y1)/2,wx=rx*c+ry*s,wy=-rx*s+ry*c;
   if(instant){sc=ns;place(wx,wy,a.cx,a.cy);draw()}else flyTo(wx,wy,ns,rot)}
 function town(){const c=R.filter(r=>r.loc==='CENTRO'),m=a=>a.sort((x,y)=>x-y)[a.length>>1];const mx=m(c.map(r=>r.x)),my=m(c.map(r=>r.y));return c.filter(r=>Math.hypot(r.x-mx,r.y-my)<1100)}
-function viewArea(){const tb=(nav?$('turn'):$('f')).getBoundingClientRect().bottom+8,bot=sheet.getBoundingClientRect().top-8;const h=Math.max(120,bot-tb);return{w:W,h,cx:W/2,cy:tb+h/2}}
+function viewArea(){const tb=(nav?$('turn'):$('f')).getBoundingClientRect().bottom+8,bot=(sd?sheet.getBoundingClientRect().top:innerHeight-shH(shState))-8;const h=Math.max(120,bot-tb);return{w:W,h,cx:W/2,cy:tb+h/2}}
 function centerOn(x,y,minSc){flyTo(x,y,minSc?Math.max(sc,minSc):sc,rot)}
 function zoomAt(f,px,py){const p=s2w(px,py);sc=clampS(sc*f);place(p[0],p[1],px,py);draw()}
 function rotateAt(dr,px,py){const p=s2w(px,py);rot=normA(rot+dr);place(p[0],p[1],px,py);draw()}
@@ -283,7 +283,7 @@ function search(text){est=null;const{name,num}=parse(text);if(!name.length){home
   if(num==null||!h){if(sts.length)h+=`<div class="lab">Ruas</div>`+sts.slice(0,12).map(streetRow).join('')}
   if(num==null){const places=R.filter(r=>r.est&&name.every(q=>r.estN.split(' ').some(w=>w.startsWith(q)))).slice(0,10);if(places.length)h+=`<div class="lab">Lugares</div>`+places.map(r=>rowHTML(r,r.n||'SN')).join('')}
   body.innerHTML=h||`<h2>Nada encontrado</h2><p class="sub">Confira o nome da rua. Dá pra digitar só um pedaço, como “tiber” para Rua Tiberio José de Almeida Filho.</p>`;
-  sheet.classList.remove('mini');
+  openSheet();
   if(sts.length===1&&num==null){selStreet=sts[0];fit(sts[0].recs,90)}else{selStreet=null;draw()}}
 function nearby(st,num){const w=st.recs.filter(r=>r.n).sort((a,b)=>Math.abs(a.n-num)-Math.abs(b.n-num));const out=[],seen=new Set();for(const r of w){if(seen.has(r.n))continue;seen.add(r.n);out.push(r);if(out.length>=3)break}return out}
 function estimate(st,num){const same=st.recs.filter(r=>r.n&&r.n%2===num%2);const pool=same.length>=2?same:st.recs.filter(r=>r.n);
@@ -301,13 +301,13 @@ function showRec(r){sel=r;est=null;mark=null;hiWay=null;dropT=performance.now();
   <button class="btn p" data-go="1">Iniciar rota até aqui</button>
   <div class="links">${sv(r.la,r.lo)}<button class="btn g" data-st="${r.s}">Números da rua</button><button class="btn g" data-home="1">Nova busca</button></div>
   ${same.length?`<div class="lab">No mesmo ponto</div>${same.slice(0,6).map(o=>rowHTML(o,o.n||'SN')).join('')}`:''}`;
-  sheet.classList.remove('mini');body.scrollTop=0;centerOn(r.x,r.y,3)}
+  openSheet();body.scrollTop=0;centerOn(r.x,r.y,3)}
 function showEst(st,num){const e=estimate(st,num);if(!e)return;est=e;sel=null;mark=null;hiWay=null;dropT=performance.now();selStreet=st;cur=e;
   body.innerHTML=`<div class="plate"><span class="st">${esc(st.disp)}</span><span class="nu">${num}</span></div>
   <div class="note">O nº ${num} não está no cadastro de 2022 (casa nova ou número trocado). O ponto foi estimado ${e.b?`entre o nº ${e.a.n} e o nº ${e.b.n}`:`junto ao nº ${e.a.n}, o mais próximo`}.</div>
   <button class="btn p" data-go="1">Iniciar rota até aqui</button>
   <div class="links">${sv(e.la,e.lo)}<button class="btn g" data-st="${st.i}">Números da rua</button><button class="btn g" data-home="1">Nova busca</button></div>`;
-  sheet.classList.remove('mini');body.scrollTop=0;centerOn(e.x,e.y,3)}
+  openSheet();body.scrollTop=0;centerOn(e.x,e.y,3)}
 function showStreet(st,keepHi){sel=null;est=null;mark=null;if(!keepHi)hiWay=null;selStreet=st;
   const nums=[...new Map(st.recs.filter(r=>r.n).sort((a,b)=>a.n-b.n).map(r=>[r.n,r])).values()];const sn=st.recs.filter(r=>!r.n);
   const odd=nums.filter(r=>r.n%2),even=nums.filter(r=>r.n%2===0);const chips=l=>`<div class="chips">${l.map(r=>`<button class="chip" data-r="${r.i}">${r.n}</button>`).join('')}</div>`;
@@ -315,7 +315,7 @@ function showStreet(st,keepHi){sel=null;est=null;mark=null;if(!keepHi)hiWay=null
   ${odd.length?`<div class="lab">Lado ímpar</div>${chips(odd)}`:''}${even.length?`<div class="lab">Lado par</div>${chips(even)}`:''}
   ${sn.length?`<div class="lab">Sem número (${sn.length})</div>${sn.slice(0,40).map(r=>rowHTML(r,'SN')).join('')}`:''}
   <div class="links" style="margin-top:12px"><button class="btn g" data-home="1">Nova busca</button></div>`;
-  sheet.classList.remove('mini');body.scrollTop=0;fit(st.recs,90)}
+  openSheet();body.scrollTop=0;fit(st.recs,90)}
 
 /* ---------- GPS e navegação ---------- */
 let me=null,watch=null,follow=false,nav=false,rt=null,pending=null,offCount=0,prog=0,voice=true,spoke={},lock=null,lastFix=null;
@@ -362,7 +362,7 @@ function navPanel(dest,info){
   body.innerHTML=`<div class="navsum"><span class="big">${info?fmtD(info.left):'…'}</span><span class="big"><small>${info?fmtT(info.time):''}</small></span></div>
   <p class="sub">até <strong>${esc(dest.label||'o destino')}</strong></p>
   <div class="links"><button class="btn g" data-voz="1">${voice?'Voz ligada':'Voz desligada'}</button><button class="btn g" data-fol="1">Centralizar em mim</button><button class="btn g" data-end="1">Encerrar rota</button></div>`;
-  sheet.classList.remove('mini')}
+  openSheet()}
 function arrive(){const d=rt.dest,side=rt.man[rt.man.length-1].side||'';say(d.pt?`Você chegou ao ponto marcado${side}.`:`Você chegou. Número ${d.n||'sem número'}${side}.`);endNav(false);
   body.innerHTML=`<h2>Você chegou!</h2><div class="plate"><span class="st">${esc(d.label||'')}</span></div><p class="sub">A casa fica${esc(side||' aqui')}.</p>
   <div class="links">${sv(d.la,d.lo)}<button class="btn g" data-home="1">Nova busca</button></div>`;sel=null;est=null;cur=null}
@@ -379,7 +379,32 @@ body.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)retur
 let qt=0;q.addEventListener('input',()=>{$('clr').hidden=!q.value;clearTimeout(qt);qt=setTimeout(()=>search(q.value),180)});
 $('f').addEventListener('submit',e=>{e.preventDefault();q.blur();search(q.value);const f=body.querySelector('.row[data-r],.row[data-est]');if(f&&parse(q.value).num!=null)f.click()});
 $('clr').addEventListener('click',()=>{q.value='';$('clr').hidden=true;home();q.focus()});
-$('grab').addEventListener('click',()=>sheet.classList.toggle('mini'));
+/* gaveta arrastável: baixa, média e alta */
+let shState='half';const shH=st=>{const vh=innerHeight;return st==='mini'?Math.min(150,Math.round(vh*.17)):st==='full'?Math.round(vh*.88):Math.round(vh*.5)};
+function setSheet(st){shState=st;sheet.classList.toggle('mini',st==='mini');sheet.style.setProperty('--sh',shH(st)+'px');if(st!=='full'&&st!=='half')body.scrollTop=0}
+function openSheet(){if(shState==='mini')setSheet('half')}
+setSheet('half');addEventListener('resize',()=>setSheet(shState));
+let sd=null;
+const sdStart=y=>{sd={y0:y,h0:sheet.getBoundingClientRect().height,last:y,t:performance.now(),v:0,moved:false};sheet.classList.add('drag')};
+const sdMove=y=>{if(!sd)return;const now=performance.now(),dt=Math.max(1,now-sd.t);sd.v=(y-sd.last)/dt;sd.last=y;sd.t=now;if(Math.abs(y-sd.y0)>4)sd.moved=true;
+  const h=Math.max(70,Math.min(innerHeight*.92,sd.h0-(y-sd.y0)));sheet.style.setProperty('--sh',h+'px')};
+const sdEnd=()=>{if(!sd)return;sheet.classList.remove('drag');const h=sheet.getBoundingClientRect().height,v=sd.v,moved=sd.moved;sd=null;
+  if(!moved){setSheet(shState==='mini'?'half':shState==='half'?'full':'half');return}
+  const order=['mini','half','full'];let st;
+  if(v<-.5)st=order[Math.min(2,order.indexOf(nearest(h))+(nearest(h)===shState?1:0))];
+  else if(v>.5)st=order[Math.max(0,order.indexOf(nearest(h))-(nearest(h)===shState?1:0))];
+  else st=nearest(h);setSheet(st);draw()};
+const nearest=h=>['mini','half','full'].reduce((a,b)=>Math.abs(shH(b)-h)<Math.abs(shH(a)-h)?b:a);
+const grab=$('grab');
+grab.addEventListener('pointerdown',e=>{grab.setPointerCapture(e.pointerId);sdStart(e.clientY)});
+grab.addEventListener('pointermove',e=>sdMove(e.clientY));
+grab.addEventListener('pointerup',sdEnd);grab.addEventListener('pointercancel',sdEnd);
+let bt=null;
+body.addEventListener('touchstart',e=>{bt={y:e.touches[0].clientY,top:body.scrollTop,drag:false}},{passive:true});
+body.addEventListener('touchmove',e=>{if(!bt)return;const y=e.touches[0].clientY,dy=y-bt.y;
+  if(!bt.drag&&Math.abs(dy)>6){const atTop=body.scrollTop<=0;if((dy>0&&atTop)||(dy<0&&shState!=='full'))bt.drag=true,sdStart(bt.y);else bt=null}
+  if(bt&&bt.drag){e.preventDefault();sdMove(y)}},{passive:false});
+body.addEventListener('touchend',()=>{if(bt&&bt.drag)sdEnd();bt=null});body.addEventListener('touchcancel',()=>{if(bt&&bt.drag)sdEnd();bt=null});
 const zBtn=f=>{const a=viewArea(),p=s2w(a.cx,a.cy);flyTo(p[0],p[1],sc*f,rot,260)};
 $('zi').addEventListener('click',()=>zBtn(1.8));$('zo').addEventListener('click',()=>zBtn(1/1.8));
 $('cmp').addEventListener('click',()=>{const a=viewArea(),p=s2w(a.cx,a.cy);
@@ -419,7 +444,7 @@ function showPoint(x,y){const la=lat0-y/KY,lo=x/KX+lon0;sel=null;est=null;selStr
   <button class="btn p" data-go="1">Iniciar rota até aqui</button>
   <div class="links">${sv(la,lo)}${nr?`<button class="btn g" data-r="${nr.i}">Ver ${esc(nr.n?'nº '+nr.n:'casa')} mais perto</button>`:''}<button class="btn g" data-home="1">Nova busca</button></div>
   <p class="meta">Dica: segure o dedo no mapa para marcar qualquer lugar, como uma casa nova ou uma entrada de sítio.</p>`;
-  sheet.classList.remove('mini');body.scrollTop=0;draw()}
+  openSheet();body.scrollTop=0;draw()}
 new ResizeObserver(resize).observe(cv);
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',draw);
 new MutationObserver(draw).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
