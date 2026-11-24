@@ -46,7 +46,7 @@ body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--sans);overflow:h
 .turn .tx{font:600 18px/1.2 var(--sans);text-wrap:balance}
 .fab{position:fixed;right:12px;top:calc(env(safe-area-inset-top) + 130px);display:grid;gap:8px;z-index:2}
 .fab button{width:46px;height:46px;border-radius:12px;border:0;background:var(--card);color:var(--ink);font:600 22px var(--sans);box-shadow:0 3px 12px #0003;cursor:pointer;display:grid;place-items:center}
-.fab button.on{color:var(--me)}
+.fab button.on{color:var(--me)}#needle{transition:none}#cmp.on{box-shadow:0 3px 12px #0003,inset 0 0 0 2px var(--me)}
 .sheet{position:fixed;left:0;right:0;bottom:0;margin:0 auto;max-width:560px;background:var(--card);border-radius:20px 20px 0 0;box-shadow:0 -8px 30px #0003;z-index:3;max-height:52vh;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom)}
 .sheet.mini .body{display:none}
 .grab{border:0;background:none;width:100%;height:30px;display:grid;place-items:center;cursor:pointer;flex:none}
@@ -92,6 +92,7 @@ h2{font:700 26px/1.05 var(--cond);margin:2px 0 4px;text-wrap:balance}
 </div>
 <div class="fab">
   <button id="me" aria-label="Minha localização"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
+  <button id="cmp" aria-label="Bússola: norte para cima"><svg id="needle" width="26" height="26" viewBox="0 0 24 24"><path d="M12 3l3.5 9h-7z" fill="#ff4f12"/><path d="M12 21l-3.5-9h7z" fill="currentColor" opacity=".45"/></svg></button>
   <button id="zi" aria-label="Aproximar">+</button><button id="zo" aria-label="Afastar">−</button>
 </div>
 <section class="sheet" id="sheet"><button class="grab" id="grab" aria-label="Abrir ou fechar painel"><i></i></button><div class="body" id="body"><p class="sub">Carregando o mapa…</p></div></section>
@@ -111,7 +112,7 @@ const NUMW={'7':'SETE','9':'NOVE','15':'QUINZE','20':'VINTE'};
 const keyTok=s=>new Set(N(s).split(' ').map(w=>NUMW[w]||w).filter(w=>w&&!STOP.has(w)));
 const fmtD=m=>m<1000?`${Math.max(10,Math.round(m/10)*10)} m`:`${(m/1000).toFixed(1).replace('.',',')} km`;
 const fmtT=s=>s<60?'1 min':s<3600?`${Math.round(s/60)} min`:`${Math.floor(s/3600)} h ${Math.round(s%3600/60)} min`;
-let D=null,S=[],R=[],sel=null,selStreet=null,est=null;
+let D=null,S=[],R=[],sel=null,selStreet=null,est=null,hiWay=null;
 let W=0,H=0,dpr=1,sc=1,tx=0,ty=0;
 const lat0=-24.08,lon0=-51.74,KX=Math.cos(lat0*Math.PI/180)*111320,KY=110540;
 const P=(la,lo)=>[(lo-lon0)*KX,-(la-lat0)*KY];
@@ -178,7 +179,7 @@ function maneuvers(rt){
     M.push({at:rt.cum[k],kind,text})}
   const L=rt.pts.length,a=rt.pts[Math.max(0,L-3)],b=rt.pts[L-1],h=rt.dest;const cr=(b[0]-a[0])*(h.y-b[1])-(b[1]-a[1])*(h.x-b[0]);
   const side=Math.hypot(h.x-b[0],h.y-b[1])<3?'':cr>0?' à direita':' à esquerda';
-  M.push({at:rt.len,kind:'arrive',text:`Chegada: nº ${h.n||'s/n'}${side}`,side});return M}
+  M.push({at:rt.len,kind:'arrive',text:h.pt?`Chegada ao ponto marcado${side}`:`Chegada: nº ${h.n||'s/n'}${side}`,side});return M}
 const ICON={straight:'M12 21V5M6 11l6-6 6 6',turnR:'M6 21v-8a4 4 0 0 1 4-4h9M15 5l4 4-4 4',turnL:'M18 21v-8a4 4 0 0 0-4-4H5M9 5 5 9l4 4',slightR:'M8 21v-7l8-8M10 6h6v6',slightL:'M16 21v-7L8 6M14 6H8v6',uturn:'M8 21V9a4 4 0 0 1 8 0v4M12 10l4 4 4-4',arrive:'M6 21V4M6 4h11l-2 4 2 4H6'};
 const icon=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="${ICON[k]||ICON.straight}"/></svg>`;
 
@@ -187,14 +188,26 @@ function prep(){
   S=D.s.map((n,i)=>({i,name:n,disp:tc(n),norm:N(n),tok:N(n).split(' '),key:keyTok(n),recs:[]}));
   R=D.r.map((a,i)=>{const la=a[7]/1e6,lo=a[8]/1e6,[x,y]=P(la,lo);const r={i,s:a[0],n:a[1],mod:a[2],comp:a[3],loc:D.l[a[4]],esp:a[5],est:a[6],la,lo,x,y,estN:N(a[6])};S[r.s].recs.push(r);return r});
 }
-function fit(list,pad=60){
-  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(const r of list){x0=Math.min(x0,r.x);x1=Math.max(x1,r.x);y0=Math.min(y0,r.y);y1=Math.max(y1,r.y)}
-  const area=viewArea();sc=Math.min(6,Math.max(.01,Math.min((area.w-pad)/Math.max(x1-x0,40),(area.h-pad)/Math.max(y1-y0,40))));
-  tx=area.cx-(x0+x1)/2*sc;ty=area.cy-(y0+y1)/2*sc;draw()}
+let rot=0,headUp=true,anim=null,dropT=0,mark=null,glideRaf=0;
+const w2s=(x,y)=>{const c=Math.cos(rot),s=Math.sin(rot);return[(x*c-y*s)*sc+tx,(x*s+y*c)*sc+ty]};
+const s2w=(u,v)=>{const c=Math.cos(rot),s=Math.sin(rot),a=(u-tx)/sc,b=(v-ty)/sc;return[a*c+b*s,-a*s+b*c]};
+function place(x,y,u,v){const c=Math.cos(rot),s=Math.sin(rot);tx=u-(x*c-y*s)*sc;ty=v-(x*s+y*c)*sc}
+const clampS=v=>Math.min(12,Math.max(.01,v));
+const normA=a=>{a=(a+Math.PI)%(2*Math.PI);if(a<0)a+=2*Math.PI;return a-Math.PI};
+const RM=matchMedia('(prefers-reduced-motion: reduce)');
+function flyTo(x,y,ns,nr,ms=450){const a=viewArea();const[x0,y0]=s2w(a.cx,a.cy);
+  anim={t0:performance.now(),ms:RM.matches?1:ms,x0,y0,x,y,s0:sc,s1:clampS(ns==null?sc:ns),r0:rot,dr:normA((nr==null?rot:nr)-rot),cx:a.cx,cy:a.cy};draw()}
+function fit(list,pad=60,instant){const c=Math.cos(rot),s=Math.sin(rot);
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(const r of list){const u=r.x*c-r.y*s,v=r.x*s+r.y*c;x0=Math.min(x0,u);x1=Math.max(x1,u);y0=Math.min(y0,v);y1=Math.max(y1,v)}
+  const a=viewArea(),ns=Math.min(6,clampS(Math.min((a.w-pad)/Math.max(x1-x0,40),(a.h-pad)/Math.max(y1-y0,40))));
+  const rx=(x0+x1)/2,ry=(y0+y1)/2,wx=rx*c+ry*s,wy=-rx*s+ry*c;
+  if(instant){sc=ns;place(wx,wy,a.cx,a.cy);draw()}else flyTo(wx,wy,ns,rot)}
 function town(){const c=R.filter(r=>r.loc==='CENTRO'),m=a=>a.sort((x,y)=>x-y)[a.length>>1];const mx=m(c.map(r=>r.x)),my=m(c.map(r=>r.y));return c.filter(r=>Math.hypot(r.x-mx,r.y-my)<1100)}
 function viewArea(){const tb=(nav?$('turn'):$('f')).getBoundingClientRect().bottom+8,bot=sheet.getBoundingClientRect().top-8;const h=Math.max(120,bot-tb);return{w:W,h,cx:W/2,cy:tb+h/2}}
-function centerOn(x,y,minSc){if(minSc&&sc<minSc)sc=minSc;const a=viewArea();tx=a.cx-x*sc;ty=a.cy-y*sc;draw()}
-function zoomAt(f,px,py){const ns=Math.min(12,Math.max(.01,sc*f));tx=px-(px-tx)*ns/sc;ty=py-(py-ty)*ns/sc;sc=ns;draw()}
+function centerOn(x,y,minSc){flyTo(x,y,minSc?Math.max(sc,minSc):sc,rot)}
+function zoomAt(f,px,py){const p=s2w(px,py);sc=clampS(sc*f);place(p[0],p[1],px,py);draw()}
+function rotateAt(dr,px,py){const p=s2w(px,py);rot=normA(rot+dr);place(p[0],p[1],px,py);draw()}
+function animZoom(f,px,py,ms=260){anim=null;const t0=performance.now();let done=0;const step=()=>{const k=Math.min(1,(performance.now()-t0)/(RM.matches?1:ms)),e=1-Math.pow(1-k,3);zoomAt(Math.pow(f,e-done),px,py);done=e;if(k<1)requestAnimationFrame(step)};step()}
 
 /* ---------- desenho ---------- */
 const probe=document.createElement('i');probe.style.cssText='position:absolute;width:0;height:0;visibility:hidden';document.body.appendChild(probe);
@@ -202,40 +215,45 @@ const col=k=>{probe.style.color=`var(${k})`;return getComputedStyle(probe).color
 function resize(){dpr=window.devicePixelRatio||1;W=cv.clientWidth;H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;draw()}
 let raf=0;function draw(){if(!raf)raf=requestAnimationFrame(paint)}
 function paint(){
-  raf=0;if(!D||!NX)return;const V=col;
+  raf=0;if(!D||!NX)return;const V=col,now=performance.now();
+  if(anim){const k=Math.min(1,(now-anim.t0)/anim.ms),e=1-Math.pow(1-k,3);sc=anim.s0*Math.pow(anim.s1/anim.s0,e);rot=normA(anim.r0+anim.dr*e);
+    place(anim.x0+(anim.x-anim.x0)*e,anim.y0+(anim.y-anim.y0)*e,anim.cx,anim.cy);if(k<1)draw();else anim=null}
   ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle=V('--bg');ctx.fillRect(0,0,W,H);
-  const X=x=>x*sc+tx,Y=y=>y*sc+ty;ctx.lineCap='round';ctx.lineJoin='round';
-  const vx0=-tx/sc-50,vx1=(W-tx)/sc+50,vy0=-ty/sc-50,vy1=(H-ty)/sc+50;
-  const vis=WAYS.map(w=>{for(const i of w.ids)if(NX[i]>vx0&&NX[i]<vx1&&NY[i]>vy0&&NY[i]<vy1)return true;return false});
+  const cn=[s2w(0,0),s2w(W,0),s2w(0,H),s2w(W,H)];const vx0=Math.min(...cn.map(p=>p[0]))-50,vx1=Math.max(...cn.map(p=>p[0]))+50,vy0=Math.min(...cn.map(p=>p[1]))-50,vy1=Math.max(...cn.map(p=>p[1]))+50;
+  const inV=(x,y)=>x>vx0&&x<vx1&&y>vy0&&y<vy1;
+  ctx.translate(tx,ty);ctx.rotate(rot);const X=x=>x*sc,Y=y=>y*sc;ctx.lineCap='round';ctx.lineJoin='round';
+  const vis=WAYS.map(w=>{for(const i of w.ids)if(inV(NX[i],NY[i]))return true;return false});
   const path=w=>{ctx.beginPath();ctx.moveTo(X(NX[w.ids[0]]),Y(NY[w.ids[0]]));for(let k=1;k<w.ids.length;k++)ctx.lineTo(X(NX[w.ids[k]]),Y(NY[w.ids[k]]))};
   const width=w=>Math.max(w.cls<2?2.6:w.cls===4?1.2:1.8,Math.min(26,RW[w.cls]*sc));
   const cas=V('--casing'),road=V('--road'),major=V('--major'),track=V('--track');
   for(const cls of [4,3,2,1,0]){WAYS.forEach((w,i)=>{if(w.cls!==cls||!vis[i])return;path(w);ctx.strokeStyle=cas;ctx.lineWidth=width(w)+2;ctx.stroke()});
     WAYS.forEach((w,i)=>{if(w.cls!==cls||!vis[i])return;path(w);ctx.strokeStyle=w.cls<2?major:w.cls===4?track:road;ctx.lineWidth=width(w);ctx.stroke()})}
+  if(hiWay!=null&&WAYS[hiWay]){const nm=WAYS[hiWay].name;ctx.strokeStyle=V('--acc');ctx.globalAlpha=.35;WAYS.forEach((w,i)=>{if(!vis[i]||(nm?w.name!==nm:i!==hiWay))return;path(w);ctx.lineWidth=width(w)+6;ctx.stroke()});ctx.globalAlpha=1}
   if(rt){ctx.beginPath();rt.pts.forEach((p,i)=>i?ctx.lineTo(X(p[0]),Y(p[1])):ctx.moveTo(X(p[0]),Y(p[1])));ctx.strokeStyle='#0006';ctx.lineWidth=Math.max(8,Math.min(20,7*sc))+3;ctx.stroke();ctx.strokeStyle=V('--route');ctx.lineWidth=Math.max(8,Math.min(20,7*sc));ctx.stroke()}
   const rad=Math.max(2,Math.min(6,2.2*sc));const house=V('--house'),shop=V('--shop'),acc=V('--acc');
-  if(sc>.12)for(const r of R){const x=X(r.x),y=Y(r.y);if(x<-10||y<-10||x>W+10||y>H+10)continue;
-    ctx.fillStyle=selStreet&&r.s===selStreet.i?acc:(r.est||(r.esp>=4&&r.esp!==7)?shop:house);ctx.beginPath();ctx.arc(x,y,rad,0,7);ctx.fill()}
-  ctx.textAlign='center';ctx.textBaseline='middle';
+  if(sc>.12)for(const r of R){if(!inV(r.x,r.y))continue;
+    ctx.fillStyle=selStreet&&r.s===selStreet.i?acc:(r.est||(r.esp>=4&&r.esp!==7)?shop:house);ctx.beginPath();ctx.arc(X(r.x),Y(r.y),rad,0,7);ctx.fill()}
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.textAlign='center';ctx.textBaseline='middle';
   const halo=V('--halo'),ink=V('--ink'),mut=V('--mut'),cond=getComputedStyle(document.documentElement).getPropertyValue('--cond');
   if(sc>.3){ctx.font=`600 ${sc>1.5?14:12}px ${getComputedStyle(document.body).fontFamily}`;const boxes=[],seen=new Map();
     WAYS.forEach((w,i)=>{if(!w.name||!vis[i]||(w.cls===4&&sc<.8))return;let bl=0,bk=0;for(let k=1;k<w.ids.length;k++){const l=Math.hypot(NX[w.ids[k]]-NX[w.ids[k-1]],NY[w.ids[k]]-NY[w.ids[k-1]]);if(l>bl){bl=l;bk=k}}
-      const tw=ctx.measureText(w.name).width;if(bl*sc<tw*.9)return;const a=w.ids[bk-1],b=w.ids[bk];const mx=X((NX[a]+NX[b])/2),my=Y((NY[a]+NY[b])/2);if(mx<0||my<0||mx>W||my>H)return;
+      const tw=ctx.measureText(w.name).width;if(bl*sc<tw*.9)return;const a=w.ids[bk-1],b=w.ids[bk];const[mx,my]=w2s((NX[a]+NX[b])/2,(NY[a]+NY[b])/2);if(mx<0||my<0||mx>W||my>H)return;
       const prevL=seen.get(w.name);if(prevL&&Math.hypot(prevL[0]-mx,prevL[1]-my)<tw*2)return;
       const bb=[mx-tw/2-4,my-9,mx+tw/2+4,my+9];if(boxes.some(c=>c[0]<bb[2]&&bb[0]<c[2]&&c[1]<bb[3]&&bb[1]<c[3]))return;boxes.push(bb);seen.set(w.name,[mx,my]);
-      let ang=Math.atan2(NY[b]-NY[a],NX[b]-NX[a]);if(ang>Math.PI/2)ang-=Math.PI;if(ang<-Math.PI/2)ang+=Math.PI;
-      ctx.save();ctx.translate(mx,my);ctx.rotate(ang);ctx.lineWidth=4;ctx.strokeStyle=halo;ctx.strokeText(w.name,0,0);ctx.fillStyle=mut;ctx.fillText(w.name,0,0);ctx.restore()})}
+      let ang=normA(Math.atan2(NY[b]-NY[a],NX[b]-NX[a])+rot);if(ang>Math.PI/2)ang-=Math.PI;if(ang<-Math.PI/2)ang+=Math.PI;
+      ctx.save();ctx.translate(mx,my);ctx.rotate(ang);ctx.lineWidth=4;ctx.strokeStyle=halo;ctx.strokeText(w.name,0,0);ctx.fillStyle=i===hiWay||(hiWay!=null&&WAYS[hiWay]&&WAYS[hiWay].name===w.name)?acc:mut;ctx.fillText(w.name,0,0);ctx.restore()})}
   if(sc>1.7){ctx.font=`700 13px ${cond}`;const grid=new Set();
-    for(const r of R){if(!r.n)continue;const x=X(r.x),y=Y(r.y)-rad-8;if(x<0||y<0||x>W||y>H)continue;const k=Math.round(x/26)+','+Math.round(y/16);if(grid.has(k))continue;grid.add(k);
+    for(const r of R){if(!r.n||!inV(r.x,r.y))continue;let[x,y]=w2s(r.x,r.y);y-=rad+8;if(x<0||y<0||x>W||y>H)continue;const k=Math.round(x/26)+','+Math.round(y/16);if(grid.has(k))continue;grid.add(k);
       ctx.lineWidth=3;ctx.strokeStyle=halo;ctx.strokeText(r.n,x,y);ctx.fillStyle=ink;ctx.fillText(r.n,x,y)}}
-  const target=rt?rt.dest:(est||sel);if(target){const x=X(target.x),y=Y(target.y);
-    ctx.fillStyle='#0004';ctx.beginPath();ctx.ellipse(x,y+2,7,3,0,0,7);ctx.fill();
+  const target=rt?rt.dest:(mark||est||sel);if(target){let[x,y]=w2s(target.x,target.y);const dt=now-dropT;const off=dt<380?-46*Math.pow(1-dt/380,2):0;if(dt<380)draw();
+    ctx.fillStyle='#0004';ctx.beginPath();ctx.ellipse(x,y+2,7*(1+off/92),3,0,0,7);ctx.fill();y+=off;
     ctx.fillStyle=acc;ctx.beginPath();ctx.moveTo(x,y);ctx.bezierCurveTo(x-4,y-10,x-15,y-18,x-15,y-30);ctx.arc(x,y-30,15,Math.PI,0);ctx.bezierCurveTo(x+15,y-18,x+4,y-10,x,y);ctx.fill();
-    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y-30,9.5,0,7);ctx.fill();ctx.fillStyle=acc;ctx.font=`700 12px ${cond}`;ctx.fillText(target.n||'SN',x,y-29.5);
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y-30,9.5,0,7);ctx.fill();ctx.fillStyle=acc;ctx.font=`700 12px ${cond}`;ctx.fillText(target.pt?'★':(target.n||'SN'),x,y-29.5);
     if(target.estimated){ctx.setLineDash([4,4]);ctx.strokeStyle=acc;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,16,0,7);ctx.stroke();ctx.setLineDash([])}}
-  if(me){const x=X(me.x),y=Y(me.y);ctx.fillStyle='#1a73e826';ctx.beginPath();ctx.arc(x,y,Math.max(14,Math.min(120,me.acc*sc)),0,7);ctx.fill();
-    if(me.hd!=null){ctx.save();ctx.translate(x,y);ctx.rotate(me.hd);ctx.fillStyle='#1a73e8';ctx.beginPath();ctx.moveTo(0,-22);ctx.lineTo(9,-6);ctx.lineTo(-9,-6);ctx.closePath();ctx.fill();ctx.restore()}
+  if(me){const[x,y]=w2s(me.x,me.y);ctx.fillStyle='#1a73e826';ctx.beginPath();ctx.arc(x,y,Math.max(14,Math.min(120,me.acc*sc)),0,7);ctx.fill();
+    if(me.hd!=null){ctx.save();ctx.translate(x,y);ctx.rotate(me.hd+rot);ctx.fillStyle='#1a73e8';ctx.beginPath();ctx.moveTo(0,-22);ctx.lineTo(9,-6);ctx.lineTo(-9,-6);ctx.closePath();ctx.fill();ctx.restore()}
     ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,10,0,7);ctx.fill();ctx.fillStyle='#1a73e8';ctx.beginPath();ctx.arc(x,y,7,0,7);ctx.fill()}
+  $('needle').style.transform=`rotate(${rot}rad)`;$('cmp').classList.toggle('on',nav&&headUp);
 }
 
 /* ---------- telas ---------- */
@@ -244,9 +262,9 @@ const subLine=r=>[r.est?tc(r.est):ESP[r.esp]||'',r.comp?tc(r.comp):'',tc(r.loc)]
 const rowHTML=(r,tag)=>`<button class="row" data-r="${r.i}"><span class="pin">${esc(tag||'•')}</span><span class="t"><strong>${esc(addrLine(r))}</strong><span>${esc(subLine(r))}</span></span></button>`;
 function streetRow(st){const nums=st.recs.filter(r=>r.n).map(r=>r.n);const rng=nums.length?`nº ${Math.min(...nums)} a ${Math.max(...nums)}`:'sem números';
   return `<button class="row" data-st="${st.i}"><span class="pin">${st.recs.length}</span><span class="t"><strong>${esc(st.disp)}</strong><span>${esc(rng+' · '+tc(st.recs[0].loc))}</span></span></button>`}
-function home(){sel=null;est=null;selStreet=null;
+function home(){sel=null;est=null;mark=null;hiWay=null;selStreet=null;
   const rec=recent.map(i=>R[i]).filter(Boolean);
-  body.innerHTML=`<h2>Para onde é a entrega?</h2><p class="sub">Digite a rua e o número. Toque em qualquer ponto do mapa para ver o endereço.</p>
+  body.innerHTML=`<h2>Para onde é a entrega?</h2><p class="sub">Digite a rua e o número. No mapa: toque numa casa ou rua, segure o dedo para marcar um ponto, e gire com dois dedos.</p>
   ${rec.length?`<div class="lab">Buscados recentemente</div>${rec.map(r=>rowHTML(r,r.n||'SN')).join('')}`:''}
   <div class="lab">Todas as ruas (${S.length})</div>${[...S].sort((a,b)=>a.disp.localeCompare(b.disp)).map(streetRow).join('')}
   <p class="foot">${R.length.toLocaleString('pt-BR')} endereços do Censo 2022 do IBGE (CNEFE) e ruas do OpenStreetMap. Casas construídas depois de 2022 não aparecem; nesses casos o app estima a posição pelos vizinhos.</p>`;
@@ -275,7 +293,7 @@ function estimate(st,num){const same=st.recs.filter(r=>r.n&&r.n%2===num%2);const
   const r=lo||hi;return r?mk(r.x,r.y,r.la,r.lo,r,null):null}
 const sv=(la,lo)=>`<a class="btn g" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${la.toFixed(6)},${lo.toFixed(6)}" target="_blank" rel="noopener">Ver a fachada (Street View)</a>`;
 let cur=null;
-function showRec(r){sel=r;est=null;selStreet=S[r.s];saveRecent(r.i);
+function showRec(r){sel=r;est=null;mark=null;hiWay=null;dropT=performance.now();selStreet=S[r.s];saveRecent(r.i);
   cur={x:r.x,y:r.y,la:r.la,lo:r.lo,n:r.n,key:S[r.s].key,label:addrLine(r)};
   const same=R.filter(o=>o!==r&&Math.abs(o.la-r.la)<1e-6&&Math.abs(o.lo-r.lo)<1e-6);
   body.innerHTML=`<div class="plate"><span class="st">${esc(S[r.s].disp)}</span><span class="nu">${r.n?esc(r.n):'s/n'}${r.mod?' '+esc(r.mod):''}</span></div>
@@ -284,13 +302,13 @@ function showRec(r){sel=r;est=null;selStreet=S[r.s];saveRecent(r.i);
   <div class="links">${sv(r.la,r.lo)}<button class="btn g" data-st="${r.s}">Números da rua</button><button class="btn g" data-home="1">Nova busca</button></div>
   ${same.length?`<div class="lab">No mesmo ponto</div>${same.slice(0,6).map(o=>rowHTML(o,o.n||'SN')).join('')}`:''}`;
   sheet.classList.remove('mini');body.scrollTop=0;centerOn(r.x,r.y,3)}
-function showEst(st,num){const e=estimate(st,num);if(!e)return;est=e;sel=null;selStreet=st;cur=e;
+function showEst(st,num){const e=estimate(st,num);if(!e)return;est=e;sel=null;mark=null;hiWay=null;dropT=performance.now();selStreet=st;cur=e;
   body.innerHTML=`<div class="plate"><span class="st">${esc(st.disp)}</span><span class="nu">${num}</span></div>
   <div class="note">O nº ${num} não está no cadastro de 2022 (casa nova ou número trocado). O ponto foi estimado ${e.b?`entre o nº ${e.a.n} e o nº ${e.b.n}`:`junto ao nº ${e.a.n}, o mais próximo`}.</div>
   <button class="btn p" data-go="1">Iniciar rota até aqui</button>
   <div class="links">${sv(e.la,e.lo)}<button class="btn g" data-st="${st.i}">Números da rua</button><button class="btn g" data-home="1">Nova busca</button></div>`;
   sheet.classList.remove('mini');body.scrollTop=0;centerOn(e.x,e.y,3)}
-function showStreet(st){sel=null;est=null;selStreet=st;
+function showStreet(st,keepHi){sel=null;est=null;mark=null;if(!keepHi)hiWay=null;selStreet=st;
   const nums=[...new Map(st.recs.filter(r=>r.n).sort((a,b)=>a.n-b.n).map(r=>[r.n,r])).values()];const sn=st.recs.filter(r=>!r.n);
   const odd=nums.filter(r=>r.n%2),even=nums.filter(r=>r.n%2===0);const chips=l=>`<div class="chips">${l.map(r=>`<button class="chip" data-r="${r.i}">${r.n}</button>`).join('')}</div>`;
   body.innerHTML=`<h2>${esc(st.disp)}</h2><p class="sub">${st.recs.length} endereços · ${esc(tc(st.recs[0].loc))}</p>
@@ -314,7 +332,7 @@ function onFix(p){const[x,y]=P(p.coords.latitude,p.coords.longitude);let hd=null
   me={x,y,acc:p.coords.accuracy||20,hd};
   if(pending){const d=pending;pending=null;beginRoute(d)}
   else if(nav)progress();
-  if(follow)centerOn(me.x,me.y);else draw()}
+  if(follow)flyTo(me.x,me.y,sc,nav&&headUp&&me.hd!=null?-me.hd:rot,600);else draw()}
 function say(t){if(!voice||!('speechSynthesis' in window))return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='pt-BR';u.rate=1.05;speechSynthesis.speak(u)}catch(e){}}
 async function wake(on){try{if(on&&'wakeLock' in navigator)lock=await navigator.wakeLock.request('screen');else if(lock){await lock.release();lock=null}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(nav&&document.visibilityState==='visible')wake(true)});
@@ -325,8 +343,8 @@ function goTo(dest){if(!NX)return;
   navPanel(dest,null)}
 function beginRoute(dest){const r=route(me.x,me.y,dest);
   if(r.err){toast(r.err==='far'?'Você está fora da área do mapa de Lunardelli.':'Não encontrei um caminho até esse endereço.');endNav(true);return}
-  rt=r;prog=0;offCount=0;spoke={};follow=true;wake(true);sc=Math.max(sc,2.6);
-  const m=rt.man[0];say(`${m.text}. ${fmtD(rt.len)} até ${dest.label||'o destino'}.`);spoke[0]=2;progress();centerOn(me.x,me.y)}
+  rt=r;prog=0;offCount=0;spoke={};follow=true;wake(true);
+  const m=rt.man[0];say(`${m.text}. ${fmtD(rt.len)} até ${dest.label||'o destino'}.`);spoke[0]=2;progress();flyTo(me.x,me.y,Math.max(sc,2.8),headUp&&me.hd!=null?-me.hd:rot,700)}
 function progress(){if(!rt||!me)return;
   let best=1e9,bi=prog,bt=0;const from=Math.max(1,prog-2),to=Math.min(rt.pts.length-1,prog+60);
   for(let i=from;i<=to;i++){const a=rt.pts[i-1],b=rt.pts[i],dx=b[0]-a[0],dy=b[1]-a[1],L=dx*dx+dy*dy||1;let t=((me.x-a[0])*dx+(me.y-a[1])*dy)/L;t=Math.max(0,Math.min(1,t));const d=Math.hypot(me.x-a[0]-t*dx,me.y-a[1]-t*dy);if(d<best){best=d;bi=i;bt=t}}
@@ -345,44 +363,70 @@ function navPanel(dest,info){
   <p class="sub">até <strong>${esc(dest.label||'o destino')}</strong></p>
   <div class="links"><button class="btn g" data-voz="1">${voice?'Voz ligada':'Voz desligada'}</button><button class="btn g" data-fol="1">Centralizar em mim</button><button class="btn g" data-end="1">Encerrar rota</button></div>`;
   sheet.classList.remove('mini')}
-function arrive(){const d=rt.dest,side=rt.man[rt.man.length-1].side||'';say(`Você chegou. Número ${d.n||'sem número'}${side}.`);endNav(false);
+function arrive(){const d=rt.dest,side=rt.man[rt.man.length-1].side||'';say(d.pt?`Você chegou ao ponto marcado${side}.`:`Você chegou. Número ${d.n||'sem número'}${side}.`);endNav(false);
   body.innerHTML=`<h2>Você chegou!</h2><div class="plate"><span class="st">${esc(d.label||'')}</span></div><p class="sub">A casa fica${esc(side||' aqui')}.</p>
   <div class="links">${sv(d.la,d.lo)}<button class="btn g" data-home="1">Nova busca</button></div>`;sel=null;est=null;cur=null}
 function endNav(back){nav=false;rt=null;pending=null;follow=false;wake(false);$('turn').hidden=true;$('srch').hidden=false;try{speechSynthesis.cancel()}catch(e){}
-  if(back){if(sel)showRec(sel);else if(est)showEst(S[est.s],est.n);else home()}draw()}
+  if(back){if(sel)showRec(sel);else if(est)showEst(S[est.s],est.n);else if(mark)showPoint(mark.x,mark.y);else home()}draw()}
 
 /* ---------- eventos ---------- */
 body.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
   if(b.dataset.r)showRec(R[+b.dataset.r]);else if(b.dataset.est){const[s,n]=b.dataset.est.split(':');showEst(S[+s],+n)}
   else if(b.dataset.st)showStreet(S[+b.dataset.st]);else if(b.dataset.home){q.value='';$('clr').hidden=true;home();fit(town())}
   else if(b.dataset.go){if(cur)goTo(cur)}else if(b.dataset.end)endNav(true);
-  else if(b.dataset.fol){follow=true;if(me)centerOn(me.x,me.y)}
+  else if(b.dataset.fol){follow=true;if(me)flyTo(me.x,me.y,Math.max(sc,2.4),headUp&&me.hd!=null?-me.hd:rot)}
   else if(b.dataset.voz){voice=!voice;try{localStorage.setItem('ent-voz',voice?'1':'0')}catch(x){}b.textContent=voice?'Voz ligada':'Voz desligada';if(!voice)try{speechSynthesis.cancel()}catch(x){}}});
 let qt=0;q.addEventListener('input',()=>{$('clr').hidden=!q.value;clearTimeout(qt);qt=setTimeout(()=>search(q.value),180)});
 $('f').addEventListener('submit',e=>{e.preventDefault();q.blur();search(q.value);const f=body.querySelector('.row[data-r],.row[data-est]');if(f&&parse(q.value).num!=null)f.click()});
 $('clr').addEventListener('click',()=>{q.value='';$('clr').hidden=true;home();q.focus()});
 $('grab').addEventListener('click',()=>sheet.classList.toggle('mini'));
-$('zi').addEventListener('click',()=>zoomAt(1.8,W/2,viewArea().cy));$('zo').addEventListener('click',()=>zoomAt(1/1.8,W/2,viewArea().cy));
+const zBtn=f=>{const a=viewArea(),p=s2w(a.cx,a.cy);flyTo(p[0],p[1],sc*f,rot,260)};
+$('zi').addEventListener('click',()=>zBtn(1.8));$('zo').addEventListener('click',()=>zBtn(1/1.8));
+$('cmp').addEventListener('click',()=>{const a=viewArea(),p=s2w(a.cx,a.cy);
+  if(Math.abs(rot)>.02){headUp=false;flyTo(p[0],p[1],sc,0)}else if(nav){headUp=true;toast('O mapa vai girar na direção em que você anda');if(me&&me.hd!=null)flyTo(me.x,me.y,sc,-me.hd)}else toast('Gire o mapa com dois dedos. Toque aqui para voltar o norte para cima.')});
 $('me').addEventListener('click',()=>{if(!startGPS())return;follow=true;if(me)centerOn(me.x,me.y,2);else toast('Procurando seu sinal de GPS…')});
-const ptrs=new Map();let down=null,pinch=null;const mapEl=$('map');
-mapEl.addEventListener('pointerdown',e=>{mapEl.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);if(ptrs.size===1)down={x:e.clientX,y:e.clientY,t:Date.now(),moved:false};else{down&&(down.moved=true);const[a,b]=[...ptrs.values()];pinch={d:Math.hypot(a[0]-b[0],a[1]-b[1])}}});
+const ptrs=new Map();let down=null,pinch=null,longT=0,vel=[];const mapEl=$('map');
+const two=()=>{const[a,b]=[...ptrs.values()];return{d:Math.hypot(a[0]-b[0],a[1]-b[1]),a:Math.atan2(b[1]-a[1],b[0]-a[0]),mx:(a[0]+b[0])/2,my:(a[1]+b[1])/2}};
+mapEl.addEventListener('pointerdown',e=>{anim=null;cancelAnimationFrame(glideRaf);mapEl.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);
+  if(ptrs.size===1){down={x:e.clientX,y:e.clientY,t:Date.now(),moved:false};vel=[];clearTimeout(longT);longT=setTimeout(()=>{if(down&&!down.moved&&ptrs.size===1){down.moved=true;down.long=true;longPress(down.x,down.y)}},550)}
+  else{clearTimeout(longT);if(down)down.moved=true;const g=two();pinch={...g,acc:0,rotOn:false}}});
 mapEl.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId))return;const prev=ptrs.get(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);
-  if(ptrs.size===2&&pinch){const[a,b]=[...ptrs.values()];const d=Math.hypot(a[0]-b[0],a[1]-b[1]);tx+=(e.clientX-prev[0])/2;ty+=(e.clientY-prev[1])/2;zoomAt(d/pinch.d,(a[0]+b[0])/2,(a[1]+b[1])/2);pinch.d=d;follow=false}
-  else if(ptrs.size===1){tx+=e.clientX-prev[0];ty+=e.clientY-prev[1];if(down&&Math.hypot(e.clientX-down.x,e.clientY-down.y)>8){down.moved=true;follow=false}draw()}});
-const up=e=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(e.type==='pointerup'&&ptrs.size===0&&down&&!down.moved&&Date.now()-down.t<500)tap(e.clientX,e.clientY);if(ptrs.size===0)down=null};
+  if(ptrs.size===2&&pinch){const g=two();tx+=g.mx-pinch.mx;ty+=g.my-pinch.my;zoomAt(g.d/pinch.d,g.mx,g.my);
+    const da=normA(g.a-pinch.a);pinch.acc+=da;if(!pinch.rotOn&&Math.abs(pinch.acc)>.22){pinch.rotOn=true;headUp=false}if(pinch.rotOn)rotateAt(da,g.mx,g.my);
+    pinch.d=g.d;pinch.a=g.a;pinch.mx=g.mx;pinch.my=g.my;follow=false}
+  else if(ptrs.size===1&&!(down&&down.long)){const dx=e.clientX-prev[0],dy=e.clientY-prev[1];tx+=dx;ty+=dy;vel.push([performance.now(),dx,dy]);if(vel.length>6)vel.shift();
+    if(down&&Math.hypot(e.clientX-down.x,e.clientY-down.y)>8){down.moved=true;follow=false;clearTimeout(longT)}draw()}});
+function glide(){const t=performance.now(),rec=vel.filter(v=>t-v[0]<90);if(rec.length<2||RM.matches)return;const dtm=Math.max(16,t-rec[0][0]);
+  let vx=rec.reduce((s,v)=>s+v[1],0)/dtm,vy=rec.reduce((s,v)=>s+v[2],0)/dtm;if(Math.hypot(vx,vy)<.25)return;let last=t;
+  const step=()=>{const n=performance.now(),dt=n-last;last=n;tx+=vx*dt;ty+=vy*dt;const f=Math.pow(.994,dt);vx*=f;vy*=f;draw();if(Math.hypot(vx,vy)>.02)glideRaf=requestAnimationFrame(step)};glideRaf=requestAnimationFrame(step)}
+const up=e=>{if(!ptrs.has(e.pointerId))return;ptrs.delete(e.pointerId);clearTimeout(longT);
+  if(ptrs.size===1&&pinch){pinch=null;const[v]=[...ptrs.values()];down={x:v[0],y:v[1],t:0,moved:true};vel=[]}
+  if(ptrs.size===0){if(e.type==='pointerup'&&down&&!down.moved&&Date.now()-down.t<500)tap(e.clientX,e.clientY);else if(down&&down.moved&&!down.long&&!pinch)glide();down=null;pinch=null}};
 mapEl.addEventListener('pointerup',up);mapEl.addEventListener('pointercancel',up);
-mapEl.addEventListener('wheel',e=>{e.preventDefault();follow=false;zoomAt(Math.exp(-e.deltaY*.0015),e.clientX,e.clientY)},{passive:false});
+mapEl.addEventListener('wheel',e=>{e.preventDefault();anim=null;follow=false;zoomAt(Math.exp(-e.deltaY*.0015),e.clientX,e.clientY)},{passive:false});
 let lastTap=0;
-function tap(px,py){const now=Date.now();if(now-lastTap<300){zoomAt(2,px,py);lastTap=0;return}lastTap=now;if(nav)return;
-  let best=null,bd=22;for(const r of R){const d=Math.hypot(r.x*sc+tx-px,r.y*sc+ty-py);if(d<bd){bd=d;best=r}}
-  if(best)setTimeout(()=>{if(lastTap===now)showRec(best)},260)}
+function tap(px,py){const now=Date.now();if(now-lastTap<300){animZoom(2,px,py);lastTap=0;return}lastTap=now;if(nav)return;
+  let best=null,bd=22;for(const r of R){const[u,v]=w2s(r.x,r.y);const d=Math.hypot(u-px,v-py);if(d<bd){bd=d;best=r}}
+  setTimeout(()=>{if(lastTap!==now)return;if(best){showRec(best);return}
+    const[x,y]=s2w(px,py);const s=snap(x,y,Math.max(8,20/sc));if(!s)return;hiWay=s.w;const w=WAYS[s.w];
+    const st=w.name&&S.filter(t=>{let m=0;for(const z of w.key)if(t.key.has(z))m++;return m/Math.min(w.key.size||1,t.key.size||1)>=.6}).sort((a,b)=>b.recs.length-a.recs.length)[0];
+    if(st)showStreet(st,true);else{toast(w.name||'Rua sem nome no mapa');draw()}},260)}
+function longPress(u,v){try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}const[x,y]=s2w(u,v);showPoint(x,y)}
+function showPoint(x,y){const la=lat0-y/KY,lo=x/KX+lon0;sel=null;est=null;selStreet=null;hiWay=null;
+  let nr=null,nd=80;for(const r of R){const d=Math.hypot(r.x-x,r.y-y);if(d<nd){nd=d;nr=r}}
+  mark={x,y,la,lo,n:0,pt:true,key:null,label:'ponto marcado'};cur=mark;dropT=performance.now();
+  body.innerHTML=`<h2>Ponto marcado</h2><p class="sub">${nr?`Perto de ${esc(addrLine(nr))} (${Math.round(nd)} m)`:'Nenhuma casa do cadastro por perto'}</p>
+  <button class="btn p" data-go="1">Iniciar rota até aqui</button>
+  <div class="links">${sv(la,lo)}${nr?`<button class="btn g" data-r="${nr.i}">Ver ${esc(nr.n?'nº '+nr.n:'casa')} mais perto</button>`:''}<button class="btn g" data-home="1">Nova busca</button></div>
+  <p class="meta">Dica: segure o dedo no mapa para marcar qualquer lugar, como uma casa nova ou uma entrada de sítio.</p>`;
+  sheet.classList.remove('mini');body.scrollTop=0;draw()}
 new ResizeObserver(resize).observe(cv);
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',draw);
 new MutationObserver(draw).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
-Promise.all([fetch('dados.json').then(r=>r.json()),fetch('ruas.json').then(r=>r.json())]).then(([d,r])=>{D=d;prep();prepRoads(r);resize();home();fit(town())})
+Promise.all([fetch('dados.json').then(r=>r.json()),fetch('ruas.json').then(r=>r.json())]).then(([d,r])=>{D=d;prep();prepRoads(r);resize();home();fit(town(),60,true)})
   .catch(()=>{body.innerHTML='<h2>Não consegui carregar o mapa</h2><p class="sub">Abra o app uma vez com internet para ele guardar o mapa no celular.</p>'});
 try{if('serviceWorker' in navigator&&location.protocol==='https:'&&!location.hostname.endsWith('claude.ai')&&!location.hostname.includes('claudeusercontent'))navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}
-window.__app={route:(a,b)=>route(a,b,cur),get rt(){return rt},P,S,R,showRec,get cur(){return cur}};
+window.__app={rotateAt:(d)=>rotateAt(d,W/2,H/2),route:(a,b)=>route(a,b,cur),get rt(){return rt},P,S,R,showRec,get cur(){return cur}};
 }
 </script>
 </body>
