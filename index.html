@@ -4,7 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
 <title>Entregas Lunardelli</title>
-<meta name="theme-color" content="#ff4f12">
+<meta name="theme-color" content="#0d1014">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -12,19 +14,19 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
-/* VOICE: calmo e direto — uma tela que se lê de relance, em cima da moto
+/* VOICE: calmo e direto, com a marca do Leonardo (LS) — mesma família do portfólio
    IDEA: mapa de bolso do entregador: o mapa é o protagonista, a interface some quando não é usada
    PICTURE: o próprio mapa da cidade, ruas reais e casa por casa
-   COLOUR and TYPE: papel claro e cinzas suaves; laranja só no alfinete e na ação principal, azul só para "você" e a rota
+   COLOUR and TYPE: grafite e azul-céu do portfólio (#0d1014 / #38a9f5); Outfit nos números e títulos, Plus Jakarta Sans no texto
    LAYOUT: busca flutuando no topo, controles agrupados à direita, gaveta embaixo com hierarquia clara */
 :root{color-scheme:light dark;
---bg:light-dark(#f2f3ef,#121519);--road:light-dark(#ffffff,#2a3038);--major:light-dark(#fbeccb,#4a4026);--track:light-dark(#e9e5da,#302d29);--casing:light-dark(#dcdfd8,#0c0e11);
---ink:light-dark(#1d232b,#e8eaed);--mut:light-dark(#69727d,#98a1ab);--faint:light-dark(#9aa2ab,#6b737d);--card:light-dark(#ffffff,#1b1f25);
---soft:light-dark(#f1f2ef,#262b32);--line:light-dark(#eceee9,#2a3038);--house:light-dark(#9aa3ad,#5f6873);--shop:light-dark(#a596db,#8d7fcf);
---acc:#f25a1f;--accsoft:light-dark(#fff0e8,#3a2318);--halo:light-dark(#ffffffe6,#121519e6);--me:#2f6fed;--route:light-dark(#2f6fed,#5b8cff);
---mine:light-dark(#12906b,#3fd0a0);--danger:light-dark(#d93a2b,#ff8a7a);--dangersoft:light-dark(#fdecea,#3a201d);--warn:light-dark(#fff6e0,#3a3220);
+--bg:light-dark(#eef1f4,#0d1014);--road:light-dark(#ffffff,#1d252e);--major:light-dark(#dceaf7,#263546);--track:light-dark(#e4e6e3,#171c21);--casing:light-dark(#d3d9e0,#06080a);
+--ink:light-dark(#151a20,#eef1f4);--mut:light-dark(#5e6b78,#93a0ad);--faint:light-dark(#8f9aa6,#5f6b77);--card:light-dark(#ffffff,#151a20);
+--soft:light-dark(#eef1f4,#1d242c);--line:light-dark(#e3e7ec,#262e37);--house:light-dark(#9ea8b3,#4d5866);--shop:#8ea6ff;
+--acc:#38a9f5;--accink:#04121f;--accsoft:light-dark(#e2f2fd,#0f2a3d);--halo:light-dark(#ffffffe6,#0d1014e6);--me:#0b5cad;--route:#38a9f5;
+--mine:light-dark(#1f9d63,#4fd18b);--danger:light-dark(#d93a2b,#ff8a7a);--dangersoft:light-dark(#fdecea,#361c1a);--warn:light-dark(#fff4dc,#2b2416);
 --shadow:0 1px 2px #0000000f,0 6px 20px #00000014;
---cond:"Barlow Condensed","Roboto Condensed","Arial Narrow","Helvetica Neue",system-ui,sans-serif;--sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+--cond:"Outfit","Barlow Condensed",system-ui,sans-serif;--sans:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 :root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
 *{box-sizing:border-box;min-width:0}[hidden]{display:none!important}
 html,body{height:100%;margin:0}
@@ -40,8 +42,8 @@ body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--sans);overflow:h
 .search:focus-within{box-shadow:var(--shadow),0 0 0 2px color-mix(in srgb,var(--acc) 55%,transparent)}
 .ib{flex:none;width:44px;height:44px;border:0;border-radius:12px;background:none;color:var(--faint);font-size:22px;cursor:pointer;display:grid;place-items:center}
 :is(.ib,.btn,.row,.chip,.fab button,.tool,.end):focus-visible{outline:2px solid var(--acc);outline-offset:2px}
-.turn{display:flex;align-items:center;gap:14px;background:#1f2630;color:#fff;border-radius:18px;padding:14px 18px;box-shadow:0 8px 24px #00000030}
-.turn svg{flex:none;width:46px;height:46px;color:#ffb38f}
+.turn{display:flex;align-items:center;gap:14px;background:#151a20;color:#fff;border-radius:18px;padding:14px 18px;box-shadow:0 8px 24px #00000030}
+.turn svg{flex:none;width:46px;height:46px;color:#38a9f5}
 .turn .d{font:700 30px/1 var(--cond);white-space:nowrap;letter-spacing:.01em}
 .turn .tx{font:500 17px/1.25 var(--sans);color:#e6e9ee;text-wrap:balance;margin-top:2px}
 .fab{position:fixed;right:12px;top:calc(env(safe-area-inset-top) + 76px);display:grid;gap:10px;z-index:2;justify-items:end}
@@ -56,7 +58,7 @@ body.navon .fab{top:calc(env(safe-area-inset-top) + 112px)}
 .grab{border:0;background:none;width:100%;height:28px;display:grid;place-items:center;cursor:grab;flex:none;touch-action:none}
 .grab i{width:36px;height:5px;border-radius:3px;background:color-mix(in srgb,var(--mut) 35%,transparent)}
 .body{overflow-y:auto;padding:2px 20px 20px;overscroll-behavior:contain}
-.kick{font-size:13px;font-weight:600;color:var(--acc);margin:0 0 2px;letter-spacing:.01em}
+.kick{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--acc);margin:0 0 2px;letter-spacing:.01em}.kick img{height:20px;width:auto}
 h2{font:650 22px/1.2 var(--sans);margin:0 0 4px;letter-spacing:-.01em;text-wrap:balance}
 .sub{color:var(--mut);font-size:15px;margin:0 0 14px}
 .lab{font-size:13px;font-weight:600;color:var(--mut);margin:18px 0 4px}
@@ -68,10 +70,10 @@ h2{font:650 22px/1.2 var(--sans);margin:0 0 4px;letter-spacing:-.01em;text-wrap:
 .addr .st{font:650 22px/1.2 var(--sans);letter-spacing:-.01em;text-wrap:balance}
 .addr .nu{flex:none;font:700 30px/1 var(--cond);color:var(--acc);background:var(--accsoft);border-radius:14px;padding:8px 14px;white-space:nowrap}
 .note{display:flex;gap:10px;background:var(--warn);border-radius:14px;padding:12px 14px;font-size:15px;margin:8px 0 6px;color:var(--ink)}
-.note::before{content:"!";flex:none;width:20px;height:20px;border-radius:50%;background:#e0a100;color:#fff;font:700 13px/20px var(--sans);text-align:center;margin-top:1px}
+.note::before{content:"!";flex:none;width:20px;height:20px;border-radius:50%;background:#f2b84b;color:#fff;font:700 13px/20px var(--sans);text-align:center;margin-top:1px}
 .btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border-radius:14px;border:0;font:600 17px var(--sans);text-decoration:none;cursor:pointer;padding:0 16px;text-align:center;width:100%;transition:transform .12s,filter .12s}
 .btn:active,.tool:active,.end:active,.row:active{transform:scale(.98)}
-.btn.p{background:var(--acc);color:#fff;margin:14px 0 10px;box-shadow:0 4px 14px color-mix(in srgb,var(--acc) 30%,transparent)}
+.btn.p{background:var(--acc);color:var(--accink);margin:14px 0 10px;box-shadow:0 4px 14px color-mix(in srgb,var(--acc) 30%,transparent)}
 .btn.g{background:var(--soft);color:var(--ink);font:500 15px var(--sans);min-height:44px;width:auto;border-radius:12px;padding:0 14px}
 .btn svg,.tool svg,.end svg{width:18px;height:18px;flex:none}
 .links{display:flex;flex-wrap:wrap;gap:8px}
@@ -91,7 +93,7 @@ h2{font:650 22px/1.2 var(--sans);margin:0 0 4px;letter-spacing:-.01em;text-wrap:
 .dest{display:flex;align-items:center;gap:10px;margin:0 0 14px;padding:12px 14px;border-radius:14px;background:var(--soft);font-size:15px}
 .dest i{flex:none;width:10px;height:10px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 4px var(--accsoft)}
 .foot{font-size:13px;color:var(--faint);margin-top:18px;line-height:1.5}
-.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 72px);transform:translateX(-50%);background:#1f2630;color:#fff;padding:10px 16px;border-radius:12px;font-size:15px;z-index:5;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center;box-shadow:0 6px 20px #00000030}
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 72px);transform:translateX(-50%);background:#151a20;color:#eef1f4;padding:10px 16px;border-radius:12px;font-size:15px;z-index:5;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center;box-shadow:0 6px 20px #00000030}
 .toast.on{opacity:1}
 #pick{position:fixed;z-index:2;transform:translate(-50%,-100%);pointer-events:none;filter:drop-shadow(0 4px 6px #0004)}
 #pick::after{content:"";position:absolute;left:50%;bottom:-3px;width:10px;height:4px;margin-left:-5px;border-radius:50%;background:#0005}
@@ -120,12 +122,12 @@ body.navon .toast{top:calc(env(safe-area-inset-top) + 124px)}
 </div>
 <div class="fab">
   <button id="me" aria-label="Minha localização"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
-  <button id="cmp" aria-label="Bússola: norte para cima"><svg id="needle" width="26" height="26" viewBox="0 0 24 24"><path d="M12 3l3.5 9h-7z" fill="#ff4f12"/><path d="M12 21l-3.5-9h7z" fill="currentColor" opacity=".45"/></svg></button>
+  <button id="cmp" aria-label="Bússola: norte para cima"><svg id="needle" width="26" height="26" viewBox="0 0 24 24"><path d="M12 3l3.5 9h-7z" fill="#38a9f5"/><path d="M12 21l-3.5-9h7z" fill="currentColor" opacity=".45"/></svg></button>
   <div class="zoom"><button id="zi" aria-label="Aproximar">+</button><button id="zo" aria-label="Afastar">−</button></div>
 </div>
 <section class="sheet" id="sheet"><button class="grab" id="grab" aria-label="Abrir ou fechar painel"><i></i></button><div class="body" id="body"><p class="sub">Carregando o mapa…</p></div></section>
 <input type="file" id="impf" accept="application/json,.json" hidden>
-<div id="pick" hidden><svg width="34" height="46" viewBox="0 0 34 46"><path d="M17 45C17 45 2 27 2 16a15 15 0 0 1 30 0c0 11-15 29-15 29z" fill="#12906b"/><circle cx="17" cy="16" r="6.5" fill="#fff"/></svg></div>
+<div id="pick" hidden><svg width="34" height="46" viewBox="0 0 34 46"><path d="M17 45C17 45 2 27 2 16a15 15 0 0 1 30 0c0 11-15 29-15 29z" fill="#1f9d63"/><circle cx="17" cy="16" r="6.5" fill="#fff"/></svg></div>
 <div class="toast" id="toast" role="status"></div>
 <script>
 {
@@ -280,9 +282,9 @@ function paint(){
     ctx.fillStyle=acc;ctx.beginPath();ctx.moveTo(x,y);ctx.bezierCurveTo(x-4,y-10,x-15,y-18,x-15,y-30);ctx.arc(x,y-30,15,Math.PI,0);ctx.bezierCurveTo(x+15,y-18,x+4,y-10,x,y);ctx.fill();
     ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y-30,9.5,0,7);ctx.fill();ctx.fillStyle=acc;ctx.font=`700 12px ${cond}`;ctx.fillText(target.pt?'★':(target.n||'SN'),x,y-29.5);
     if(target.estimated){ctx.setLineDash([4,4]);ctx.strokeStyle=acc;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,16,0,7);ctx.stroke();ctx.setLineDash([])}}
-  if(me){const[x,y]=w2s(me.x,me.y);ctx.fillStyle='#1a73e826';ctx.beginPath();ctx.arc(x,y,Math.max(14,Math.min(120,me.acc*sc)),0,7);ctx.fill();
-    if(me.hd!=null){ctx.save();ctx.translate(x,y);ctx.rotate(me.hd+rot);ctx.fillStyle='#1a73e8';ctx.beginPath();ctx.moveTo(0,-22);ctx.lineTo(9,-6);ctx.lineTo(-9,-6);ctx.closePath();ctx.fill();ctx.restore()}
-    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,10,0,7);ctx.fill();ctx.fillStyle='#1a73e8';ctx.beginPath();ctx.arc(x,y,7,0,7);ctx.fill()}
+  if(me){const[x,y]=w2s(me.x,me.y);ctx.fillStyle='#38a9f533';ctx.beginPath();ctx.arc(x,y,Math.max(14,Math.min(120,me.acc*sc)),0,7);ctx.fill();
+    if(me.hd!=null){ctx.save();ctx.translate(x,y);ctx.rotate(me.hd+rot);ctx.fillStyle='#0b5cad';ctx.beginPath();ctx.moveTo(0,-22);ctx.lineTo(9,-6);ctx.lineTo(-9,-6);ctx.closePath();ctx.fill();ctx.restore()}
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,10,0,7);ctx.fill();ctx.fillStyle='#0b5cad';ctx.beginPath();ctx.arc(x,y,7,0,7);ctx.fill()}
   $('needle').style.transform=`rotate(${rot}rad)`;$('cmp').classList.toggle('on',nav&&headUp);
 }
 
@@ -294,7 +296,7 @@ function streetRow(st){const nums=st.recs.filter(r=>r.n).map(r=>r.n);const rng=n
   return `<button class="row" data-st="${st.i}"><span class="pin">${st.recs.length}</span><span class="t"><strong>${esc(st.disp)}</strong><span>${esc(rng+' · '+tc(st.recs[0].loc))}</span></span></button>`}
 function home(){sel=null;est=null;mark=null;hiWay=null;selStreet=null;
   const rec=recent.map(i=>R[i]).filter(Boolean);
-  body.innerHTML=`<p class="kick">Entregas Lunardelli</p><h2>Para onde é a entrega?</h2><p class="sub">Digite a rua e o número. No mapa: toque numa casa ou rua, segure o dedo para marcar um ponto, e gire com dois dedos.</p>
+  body.innerHTML=`<p class="kick"><img src="logo-ls.png" alt="" width="27" height="20">Entregas Lunardelli</p><h2>Para onde é a entrega?</h2><p class="sub">Digite a rua e o número. No mapa: toque numa casa ou rua, segure o dedo para marcar um ponto, e gire com dois dedos.</p>
   ${rec.length?`<div class="lab">Buscados recentemente</div>${rec.map(r=>rowHTML(r,r.n||'SN')).join('')}`:''}
   <div class="lab">Todas as ruas (${S.length})</div>${[...S].sort((a,b)=>a.disp.localeCompare(b.disp)).map(streetRow).join('')}
   <div class="lab">Meu cadastro</div><p class="sub" style="margin:0 0 10px">Casas e nomes de rua que você adicionou ou corrigiu. Ficam guardados neste celular.</p>
