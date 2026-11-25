@@ -12,76 +12,95 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
-/* VOICE: rápido, direto, de quem está na moto com o pedido na mão
-   IDEA: placa de rua + navegador de entregador — o endereço vira um alfinete e uma rota
-   PICTURE: o próprio mapa da cidade, ruas reais e casa por casa, ocupando a tela
-   COLOUR and TYPE: asfalto e papel, laranja de sinalização, azul só para "você"; letra condensada de placa
-   LAYOUT: mapa em tela cheia, busca (ou instrução de curva) no topo, gaveta embaixo */
+/* VOICE: calmo e direto — uma tela que se lê de relance, em cima da moto
+   IDEA: mapa de bolso do entregador: o mapa é o protagonista, a interface some quando não é usada
+   PICTURE: o próprio mapa da cidade, ruas reais e casa por casa
+   COLOUR and TYPE: papel claro e cinzas suaves; laranja só no alfinete e na ação principal, azul só para "você" e a rota
+   LAYOUT: busca flutuando no topo, controles agrupados à direita, gaveta embaixo com hierarquia clara */
 :root{color-scheme:light dark;
---bg:light-dark(#eef0ea,#14171b);--road:light-dark(#ffffff,#2f353d);--major:light-dark(#ffe7a8,#5a4a26);--track:light-dark(#e3dccb,#3a3630);--casing:light-dark(#c4c8bf,#0b0d10);
---ink:light-dark(#1b1f24,#eceef0);--mut:light-dark(#5d6670,#9aa3ad);--card:light-dark(#ffffff,#1e2228);
---line:light-dark(#e2e5df,#2d333a);--house:light-dark(#46505c,#aab3bd);--shop:light-dark(#7b4fd6,#b79cff);
---acc:#ff4f12;--accsoft:light-dark(#ffe3d6,#4a2416);--halo:light-dark(#ffffffd9,#14171bd9);--me:#1a73e8;--route:light-dark(#ff4f12,#ff6a35);
+--bg:light-dark(#f2f3ef,#121519);--road:light-dark(#ffffff,#2a3038);--major:light-dark(#fbeccb,#4a4026);--track:light-dark(#e9e5da,#302d29);--casing:light-dark(#dcdfd8,#0c0e11);
+--ink:light-dark(#1d232b,#e8eaed);--mut:light-dark(#69727d,#98a1ab);--faint:light-dark(#9aa2ab,#6b737d);--card:light-dark(#ffffff,#1b1f25);
+--soft:light-dark(#f1f2ef,#262b32);--line:light-dark(#eceee9,#2a3038);--house:light-dark(#9aa3ad,#5f6873);--shop:light-dark(#a596db,#8d7fcf);
+--acc:#f25a1f;--accsoft:light-dark(#fff0e8,#3a2318);--halo:light-dark(#ffffffe6,#121519e6);--me:#2f6fed;--route:light-dark(#2f6fed,#5b8cff);
+--danger:light-dark(#d93a2b,#ff8a7a);--dangersoft:light-dark(#fdecea,#3a201d);--warn:light-dark(#fff6e0,#3a3220);
+--shadow:0 1px 2px #0000000f,0 6px 20px #00000014;
 --cond:"Barlow Condensed","Roboto Condensed","Arial Narrow","Helvetica Neue",system-ui,sans-serif;--sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 :root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
 *{box-sizing:border-box;min-width:0}[hidden]{display:none!important}
 html,body{height:100%;margin:0}
-body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--sans);overflow:hidden;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--sans);overflow:hidden;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
 #map{position:fixed;inset:0;touch-action:none}
 #map canvas{width:100%;height:100%;display:block}
 .top{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 10px) 12px 0;pointer-events:none;z-index:3}
 .top>*{pointer-events:auto;max-width:560px;margin:0 auto}
-.brand{display:flex;align-items:center;gap:8px;font:700 15px/1 var(--cond);letter-spacing:.02em;margin-bottom:8px;width:max-content;background:var(--ink);color:var(--bg);padding:6px 10px;border-radius:6px}
-.brand b{background:var(--acc);color:#fff;border-radius:4px;padding:2px 5px}
-.search{display:flex;align-items:center;background:var(--card);border-radius:14px;box-shadow:0 6px 24px #0003,0 0 0 1px var(--line);height:54px;padding:0 6px 0 14px}
-.search svg{flex:none;color:var(--mut)}
-#q{flex:1;border:0;background:none;color:var(--ink);font:500 17px var(--sans);height:100%;padding:0 10px;outline:none}
-#q::-webkit-search-cancel-button{display:none}#q::placeholder{color:var(--mut)}
-.search:focus-within{box-shadow:0 6px 24px #0003,0 0 0 2px var(--acc)}
-.ib{flex:none;width:44px;height:44px;border:0;border-radius:10px;background:none;color:var(--mut);font-size:22px;cursor:pointer;display:grid;place-items:center}
-.ib:focus-visible,.btn:focus-visible,.row:focus-visible,.chip:focus-visible,.fab button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
-.turn{display:flex;align-items:center;gap:14px;background:#14171b;color:#fff;border-radius:16px;padding:14px 16px;box-shadow:0 8px 28px #0005}
-.turn svg{flex:none;width:52px;height:52px;color:var(--acc)}
-.turn .d{font:700 34px/1 var(--cond);white-space:nowrap}
-.turn .tx{font:600 18px/1.2 var(--sans);text-wrap:balance}
-.fab{position:fixed;right:12px;top:calc(env(safe-area-inset-top) + 130px);display:grid;gap:8px;z-index:2}
-.fab button{width:46px;height:46px;border-radius:12px;border:0;background:var(--card);color:var(--ink);font:600 22px var(--sans);box-shadow:0 3px 12px #0003;cursor:pointer;display:grid;place-items:center}
-.fab button.on{color:var(--me)}#needle{transition:none}#cmp.on{box-shadow:0 3px 12px #0003,inset 0 0 0 2px var(--me)}
-.sheet{position:fixed;left:0;right:0;bottom:0;margin:0 auto;max-width:560px;background:var(--card);border-radius:20px 20px 0 0;box-shadow:0 -8px 30px #0003;z-index:3;height:var(--sh,52vh);transition:height .28s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom)}
+.search{display:flex;align-items:center;background:var(--card);border-radius:16px;box-shadow:var(--shadow);height:52px;padding:0 6px 0 16px}
+.search svg{flex:none;color:var(--faint)}
+#q{flex:1;border:0;background:none;color:var(--ink);font:400 17px var(--sans);height:100%;padding:0 10px;outline:none}
+#q::-webkit-search-cancel-button{display:none}#q::placeholder{color:var(--faint)}
+.search:focus-within{box-shadow:var(--shadow),0 0 0 2px color-mix(in srgb,var(--acc) 55%,transparent)}
+.ib{flex:none;width:44px;height:44px;border:0;border-radius:12px;background:none;color:var(--faint);font-size:22px;cursor:pointer;display:grid;place-items:center}
+:is(.ib,.btn,.row,.chip,.fab button,.tool,.end):focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.turn{display:flex;align-items:center;gap:14px;background:#1f2630;color:#fff;border-radius:18px;padding:14px 18px;box-shadow:0 8px 24px #00000030}
+.turn svg{flex:none;width:46px;height:46px;color:#ffb38f}
+.turn .d{font:700 30px/1 var(--cond);white-space:nowrap;letter-spacing:.01em}
+.turn .tx{font:500 17px/1.25 var(--sans);color:#e6e9ee;text-wrap:balance;margin-top:2px}
+.fab{position:fixed;right:12px;top:calc(env(safe-area-inset-top) + 76px);display:grid;gap:10px;z-index:2;justify-items:end}
+.fab button{width:44px;height:44px;border:0;background:var(--card);color:var(--ink);font:500 22px/1 var(--sans);cursor:pointer;display:grid;place-items:center}
+.fab>button{border-radius:50%;box-shadow:var(--shadow)}
+.fab .zoom{display:grid;border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+.fab .zoom button{border-radius:0;height:44px}.fab .zoom button+button{border-top:1px solid var(--line)}
+.fab button.on{color:var(--me)}#cmp.on{box-shadow:var(--shadow),inset 0 0 0 2px var(--me)}
+body.navon .fab{top:calc(env(safe-area-inset-top) + 112px)}
+.sheet{position:fixed;left:0;right:0;bottom:0;margin:0 auto;max-width:560px;background:var(--card);border-radius:24px 24px 0 0;box-shadow:0 -2px 18px #00000018;z-index:3;height:var(--sh,52vh);transition:height .28s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom)}
 .sheet.drag{transition:none}.sheet.mini .body{overflow:hidden}
-.grab{border:0;background:none;width:100%;height:40px;display:grid;place-items:center;cursor:grab;flex:none;touch-action:none}
-.grab i{width:44px;height:5px;border-radius:3px;background:var(--line)}
-.body{overflow-y:auto;padding:0 16px 16px;overscroll-behavior:contain}
-h2{font:700 26px/1.05 var(--cond);margin:2px 0 4px;text-wrap:balance}
-.sub{color:var(--mut);font-size:15px;margin:0 0 12px}
-.lab{font-size:13px;font-weight:600;color:var(--mut);margin:14px 0 6px}
-.row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;background:none;color:var(--ink);padding:10px 4px;border-bottom:1px solid var(--line);font:inherit;cursor:pointer;min-height:52px}
-.row .pin{flex:none;min-width:30px;height:30px;padding:0 4px;border-radius:8px;background:var(--accsoft);color:var(--acc);display:grid;place-items:center;font:700 14px var(--cond)}
-.row .t{flex:1}.row .t strong{display:block;font-weight:600}.row .t span{font-size:14px;color:var(--mut)}
-.plate{display:inline-flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;background:var(--ink);color:var(--bg);border-radius:10px;padding:8px 14px;margin:2px 0 8px}
-.plate .st{font:700 22px/1.05 var(--cond)}
-.plate .nu{font:700 34px/1 var(--cond);color:var(--acc);white-space:nowrap}
-.note{background:var(--accsoft);border-radius:10px;padding:10px 12px;font-size:15px;margin:6px 0 10px}
-.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:54px;border-radius:12px;border:0;font:700 19px var(--cond);text-decoration:none;cursor:pointer;padding:0 14px;text-align:center;width:100%}
-.btn.p{background:var(--acc);color:#fff;margin:10px 0 8px}.btn.s{background:var(--ink);color:var(--bg)}
-.btn.g{background:none;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line);font:600 15px var(--sans);min-height:46px;width:auto}
+.grab{border:0;background:none;width:100%;height:28px;display:grid;place-items:center;cursor:grab;flex:none;touch-action:none}
+.grab i{width:36px;height:5px;border-radius:3px;background:color-mix(in srgb,var(--mut) 35%,transparent)}
+.body{overflow-y:auto;padding:2px 20px 20px;overscroll-behavior:contain}
+.kick{font-size:13px;font-weight:600;color:var(--acc);margin:0 0 2px;letter-spacing:.01em}
+h2{font:650 22px/1.2 var(--sans);margin:0 0 4px;letter-spacing:-.01em;text-wrap:balance}
+.sub{color:var(--mut);font-size:15px;margin:0 0 14px}
+.lab{font-size:13px;font-weight:600;color:var(--mut);margin:18px 0 4px}
+.row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;background:none;color:var(--ink);padding:10px 0;border-bottom:1px solid var(--line);font:inherit;cursor:pointer;min-height:56px}
+.row:last-of-type{border-bottom:0}
+.row .pin{flex:none;min-width:40px;height:32px;padding:0 6px;border-radius:9px;background:var(--soft);color:var(--ink);display:grid;place-items:center;font:600 15px var(--cond);letter-spacing:.02em}
+.row .t{flex:1}.row .t strong{display:block;font-weight:550}.row .t span{font-size:14px;color:var(--mut)}
+.addr{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 4px}
+.addr .st{font:650 22px/1.2 var(--sans);letter-spacing:-.01em;text-wrap:balance}
+.addr .nu{flex:none;font:700 30px/1 var(--cond);color:var(--acc);background:var(--accsoft);border-radius:14px;padding:8px 14px;white-space:nowrap}
+.note{display:flex;gap:10px;background:var(--warn);border-radius:14px;padding:12px 14px;font-size:15px;margin:8px 0 6px;color:var(--ink)}
+.note::before{content:"!";flex:none;width:20px;height:20px;border-radius:50%;background:#e0a100;color:#fff;font:700 13px/20px var(--sans);text-align:center;margin-top:1px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border-radius:14px;border:0;font:600 17px var(--sans);text-decoration:none;cursor:pointer;padding:0 16px;text-align:center;width:100%;transition:transform .12s,filter .12s}
+.btn:active,.tool:active,.end:active,.row:active{transform:scale(.98)}
+.btn.p{background:var(--acc);color:#fff;margin:14px 0 10px;box-shadow:0 4px 14px color-mix(in srgb,var(--acc) 30%,transparent)}
+.btn.g{background:var(--soft);color:var(--ink);font:500 15px var(--sans);min-height:44px;width:auto;border-radius:12px;padding:0 14px}
+.btn svg,.tool svg,.end svg{width:18px;height:18px;flex:none}
 .links{display:flex;flex-wrap:wrap;gap:8px}
-.meta{font-size:14px;color:var(--mut);margin:8px 0 0}
+.meta{font-size:14px;color:var(--mut);margin:10px 0 0}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{min-width:52px;height:40px;border-radius:8px;border:0;background:var(--bg);color:var(--ink);font:700 17px var(--cond);cursor:pointer;padding:0 8px}
-.navsum{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:0 0 4px}
-.navsum .big{font:700 32px/1 var(--cond);white-space:nowrap}.navsum .big small{font-size:18px;color:var(--mut)}
-.foot{font-size:13px;color:var(--mut);margin-top:14px}
-.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 140px);transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:10px;font-size:15px;z-index:5;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
+.chip{min-width:54px;height:40px;border-radius:10px;border:0;background:var(--soft);color:var(--ink);font:600 17px var(--cond);cursor:pointer;padding:0 10px}
+.navtop{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 14px}
+.eta{display:grid;gap:2px}
+.eta b{font:700 34px/1 var(--cond);letter-spacing:.01em}
+.eta b small{font:500 15px var(--sans);color:var(--mut);margin-left:6px;letter-spacing:0}
+.eta span{font-size:14px;color:var(--mut)}
+.end{flex:none;display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 18px 0 14px;border:0;border-radius:999px;background:var(--dangersoft);color:var(--danger);font:600 16px var(--sans);cursor:pointer;transition:transform .12s}
+.end svg{width:20px;height:20px}
+.tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.tool{display:grid;justify-items:center;gap:4px;padding:10px 4px;min-height:64px;border:0;border-radius:14px;background:var(--soft);color:var(--ink);font:500 13px var(--sans);cursor:pointer;transition:transform .12s}
+.tool.off{color:var(--faint)}
+.dest{display:flex;align-items:center;gap:10px;margin:0 0 14px;padding:12px 14px;border-radius:14px;background:var(--soft);font-size:15px}
+.dest i{flex:none;width:10px;height:10px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 4px var(--accsoft)}
+.foot{font-size:13px;color:var(--faint);margin-top:18px;line-height:1.5}
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 72px);transform:translateX(-50%);background:#1f2630;color:#fff;padding:10px 16px;border-radius:12px;font-size:15px;z-index:5;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center;box-shadow:0 6px 20px #00000030}
 .toast.on{opacity:1}
-@media(prefers-reduced-motion:reduce){.toast{transition:none}}
+body.navon .toast{top:calc(env(safe-area-inset-top) + 124px)}
+@media(prefers-reduced-motion:reduce){.toast,.btn,.tool,.end{transition:none}}
 </style>
 </head>
 <body>
 <div id="map"><canvas id="cv"></canvas></div>
 <div class="top">
   <div id="srch">
-    <div class="brand"><b>ENTREGAS</b> LUNARDELLI</div>
     <form class="search" id="f" autocomplete="off">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
       <input id="q" type="search" inputmode="search" placeholder="Rua e número — ex: Bahia 245" aria-label="Buscar endereço">
@@ -93,7 +112,7 @@ h2{font:700 26px/1.05 var(--cond);margin:2px 0 4px;text-wrap:balance}
 <div class="fab">
   <button id="me" aria-label="Minha localização"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
   <button id="cmp" aria-label="Bússola: norte para cima"><svg id="needle" width="26" height="26" viewBox="0 0 24 24"><path d="M12 3l3.5 9h-7z" fill="#ff4f12"/><path d="M12 21l-3.5-9h7z" fill="currentColor" opacity=".45"/></svg></button>
-  <button id="zi" aria-label="Aproximar">+</button><button id="zo" aria-label="Afastar">−</button>
+  <div class="zoom"><button id="zi" aria-label="Aproximar">+</button><button id="zo" aria-label="Afastar">−</button></div>
 </div>
 <section class="sheet" id="sheet"><button class="grab" id="grab" aria-label="Abrir ou fechar painel"><i></i></button><div class="body" id="body"><p class="sub">Carregando o mapa…</p></div></section>
 <div class="toast" id="toast" role="status"></div>
@@ -229,8 +248,8 @@ function paint(){
   for(const cls of [4,3,2,1,0]){WAYS.forEach((w,i)=>{if(w.cls!==cls||!vis[i])return;path(w);ctx.strokeStyle=cas;ctx.lineWidth=width(w)+2;ctx.stroke()});
     WAYS.forEach((w,i)=>{if(w.cls!==cls||!vis[i])return;path(w);ctx.strokeStyle=w.cls<2?major:w.cls===4?track:road;ctx.lineWidth=width(w);ctx.stroke()})}
   if(hiWay!=null&&WAYS[hiWay]){const nm=WAYS[hiWay].name;ctx.strokeStyle=V('--acc');ctx.globalAlpha=.35;WAYS.forEach((w,i)=>{if(!vis[i]||(nm?w.name!==nm:i!==hiWay))return;path(w);ctx.lineWidth=width(w)+6;ctx.stroke()});ctx.globalAlpha=1}
-  if(rt){ctx.beginPath();rt.pts.forEach((p,i)=>i?ctx.lineTo(X(p[0]),Y(p[1])):ctx.moveTo(X(p[0]),Y(p[1])));ctx.strokeStyle='#0006';ctx.lineWidth=Math.max(8,Math.min(20,7*sc))+3;ctx.stroke();ctx.strokeStyle=V('--route');ctx.lineWidth=Math.max(8,Math.min(20,7*sc));ctx.stroke()}
-  const rad=Math.max(2,Math.min(6,2.2*sc));const house=V('--house'),shop=V('--shop'),acc=V('--acc');
+  if(rt){ctx.beginPath();rt.pts.forEach((p,i)=>i?ctx.lineTo(X(p[0]),Y(p[1])):ctx.moveTo(X(p[0]),Y(p[1])));ctx.strokeStyle=V('--card');ctx.lineWidth=Math.max(8,Math.min(20,7*sc))+4;ctx.stroke();ctx.strokeStyle=V('--route');ctx.lineWidth=Math.max(8,Math.min(20,7*sc));ctx.stroke()}
+  const rad=Math.max(1.8,Math.min(4.5,1.8*sc));const house=V('--house'),shop=V('--shop'),acc=V('--acc');
   if(sc>.12)for(const r of R){if(!inV(r.x,r.y))continue;
     ctx.fillStyle=selStreet&&r.s===selStreet.i?acc:(r.est||(r.esp>=4&&r.esp!==7)?shop:house);ctx.beginPath();ctx.arc(X(r.x),Y(r.y),rad,0,7);ctx.fill()}
   ctx.setTransform(dpr,0,0,dpr,0,0);ctx.textAlign='center';ctx.textBaseline='middle';
@@ -242,9 +261,9 @@ function paint(){
       const bb=[mx-tw/2-4,my-9,mx+tw/2+4,my+9];if(boxes.some(c=>c[0]<bb[2]&&bb[0]<c[2]&&c[1]<bb[3]&&bb[1]<c[3]))return;boxes.push(bb);seen.set(w.name,[mx,my]);
       let ang=normA(Math.atan2(NY[b]-NY[a],NX[b]-NX[a])+rot);if(ang>Math.PI/2)ang-=Math.PI;if(ang<-Math.PI/2)ang+=Math.PI;
       ctx.save();ctx.translate(mx,my);ctx.rotate(ang);ctx.lineWidth=4;ctx.strokeStyle=halo;ctx.strokeText(w.name,0,0);ctx.fillStyle=i===hiWay||(hiWay!=null&&WAYS[hiWay]&&WAYS[hiWay].name===w.name)?acc:mut;ctx.fillText(w.name,0,0);ctx.restore()})}
-  if(sc>1.7){ctx.font=`700 13px ${cond}`;const grid=new Set();
+  if(sc>1.7){ctx.font=`600 12px ${cond}`;const grid=new Set();
     for(const r of R){if(!r.n||!inV(r.x,r.y))continue;let[x,y]=w2s(r.x,r.y);y-=rad+8;if(x<0||y<0||x>W||y>H)continue;const k=Math.round(x/26)+','+Math.round(y/16);if(grid.has(k))continue;grid.add(k);
-      ctx.lineWidth=3;ctx.strokeStyle=halo;ctx.strokeText(r.n,x,y);ctx.fillStyle=ink;ctx.fillText(r.n,x,y)}}
+      ctx.lineWidth=3;ctx.strokeStyle=halo;ctx.strokeText(r.n,x,y);ctx.fillStyle=mut;ctx.fillText(r.n,x,y)}}
   const target=rt?rt.dest:(mark||est||sel);if(target){let[x,y]=w2s(target.x,target.y);const dt=now-dropT;const off=dt<380?-46*Math.pow(1-dt/380,2):0;if(dt<380)draw();
     ctx.fillStyle='#0004';ctx.beginPath();ctx.ellipse(x,y+2,7*(1+off/92),3,0,0,7);ctx.fill();y+=off;
     ctx.fillStyle=acc;ctx.beginPath();ctx.moveTo(x,y);ctx.bezierCurveTo(x-4,y-10,x-15,y-18,x-15,y-30);ctx.arc(x,y-30,15,Math.PI,0);ctx.bezierCurveTo(x+15,y-18,x+4,y-10,x,y);ctx.fill();
@@ -264,7 +283,7 @@ function streetRow(st){const nums=st.recs.filter(r=>r.n).map(r=>r.n);const rng=n
   return `<button class="row" data-st="${st.i}"><span class="pin">${st.recs.length}</span><span class="t"><strong>${esc(st.disp)}</strong><span>${esc(rng+' · '+tc(st.recs[0].loc))}</span></span></button>`}
 function home(){sel=null;est=null;mark=null;hiWay=null;selStreet=null;
   const rec=recent.map(i=>R[i]).filter(Boolean);
-  body.innerHTML=`<h2>Para onde é a entrega?</h2><p class="sub">Digite a rua e o número. No mapa: toque numa casa ou rua, segure o dedo para marcar um ponto, e gire com dois dedos.</p>
+  body.innerHTML=`<p class="kick">Entregas Lunardelli</p><h2>Para onde é a entrega?</h2><p class="sub">Digite a rua e o número. No mapa: toque numa casa ou rua, segure o dedo para marcar um ponto, e gire com dois dedos.</p>
   ${rec.length?`<div class="lab">Buscados recentemente</div>${rec.map(r=>rowHTML(r,r.n||'SN')).join('')}`:''}
   <div class="lab">Todas as ruas (${S.length})</div>${[...S].sort((a,b)=>a.disp.localeCompare(b.disp)).map(streetRow).join('')}
   <div class="links" style="margin-top:14px"><button class="btn g" data-tv="1">Testar voz</button></div><p class="foot">${R.length.toLocaleString('pt-BR')} endereços do Censo 2022 do IBGE (CNEFE) e ruas do OpenStreetMap. Casas construídas depois de 2022 não aparecem; nesses casos o app estima a posição pelos vizinhos.</p>`;
@@ -296,16 +315,16 @@ let cur=null;
 function showRec(r){sel=r;est=null;mark=null;hiWay=null;dropT=performance.now();selStreet=S[r.s];saveRecent(r.i);
   cur={x:r.x,y:r.y,la:r.la,lo:r.lo,n:r.n,key:S[r.s].key,label:addrLine(r)};
   const same=R.filter(o=>o!==r&&Math.abs(o.la-r.la)<1e-6&&Math.abs(o.lo-r.lo)<1e-6);
-  body.innerHTML=`<div class="plate"><span class="st">${esc(S[r.s].disp)}</span><span class="nu">${r.n?esc(r.n):'s/n'}${r.mod?' '+esc(r.mod):''}</span></div>
+  body.innerHTML=`<div class="addr"><span class="st">${esc(S[r.s].disp)}</span><span class="nu">${r.n?esc(r.n):'s/n'}${r.mod?' '+esc(r.mod):''}</span></div>
   <p class="sub">${esc(subLine(r))}</p>${!r.n?'<div class="note">Este endereço está sem número no cadastro. Confira pelo ponto no mapa.</div>':''}
-  <button class="btn p" data-go="1">Iniciar rota até aqui</button>
+  <button class="btn p" data-go="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8-8 18-2-8z"/></svg>Iniciar rota até aqui</button>
   <div class="links">${sv(r.la,r.lo)}<button class="btn g" data-st="${r.s}">Números da rua</button><button class="btn g" data-home="1">Nova busca</button></div>
   ${same.length?`<div class="lab">No mesmo ponto</div>${same.slice(0,6).map(o=>rowHTML(o,o.n||'SN')).join('')}`:''}`;
   openSheet();body.scrollTop=0;centerOn(r.x,r.y,3)}
 function showEst(st,num){const e=estimate(st,num);if(!e)return;est=e;sel=null;mark=null;hiWay=null;dropT=performance.now();selStreet=st;cur=e;
-  body.innerHTML=`<div class="plate"><span class="st">${esc(st.disp)}</span><span class="nu">${num}</span></div>
+  body.innerHTML=`<div class="addr"><span class="st">${esc(st.disp)}</span><span class="nu">${num}</span></div>
   <div class="note">O nº ${num} não está no cadastro de 2022 (casa nova ou número trocado). O ponto foi estimado ${e.b?`entre o nº ${e.a.n} e o nº ${e.b.n}`:`junto ao nº ${e.a.n}, o mais próximo`}.</div>
-  <button class="btn p" data-go="1">Iniciar rota até aqui</button>
+  <button class="btn p" data-go="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8-8 18-2-8z"/></svg>Iniciar rota até aqui</button>
   <div class="links">${sv(e.la,e.lo)}<button class="btn g" data-st="${st.i}">Números da rua</button><button class="btn g" data-home="1">Nova busca</button></div>`;
   openSheet();body.scrollTop=0;centerOn(e.x,e.y,3)}
 function showStreet(st,keepHi){sel=null;est=null;mark=null;if(!keepHi)hiWay=null;selStreet=st;
@@ -336,13 +355,13 @@ function onFix(p){const[x,y]=P(p.coords.latitude,p.coords.longitude);let hd=null
 const SS=window.speechSynthesis;let ptVoice=null;
 const pickVoice=()=>{try{const v=SS.getVoices();ptVoice=v.find(x=>/pt[-_]BR/i.test(x.lang)&&x.localService)||v.find(x=>/pt[-_]BR/i.test(x.lang))||v.find(x=>/^pt/i.test(x.lang))||null}catch(e){}};
 if(SS){pickVoice();try{SS.addEventListener('voiceschanged',pickVoice)}catch(e){SS.onvoiceschanged=pickVoice}}
-let spokeOk=false,silentEl=null;
+let spokeOk=false,silentEl=null,voiceErr=false;
 /* iPhone: faz o áudio do app tocar como mídia (ignora a chave do silencioso) e "acorda" o som no toque do botão */
 function unlockAudio(){try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}
   try{if(!silentEl){silentEl=new Audio('data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==');silentEl.setAttribute('playsinline','')}silentEl.play().catch(()=>{})}catch(e){}}
 function speakNow(t){const u=new SpeechSynthesisUtterance(t);u.lang='pt-BR';if(ptVoice)u.voice=ptVoice;u.rate=1;u.volume=1;
-  u.onstart=()=>{spokeOk=true};u.onerror=e=>{if(e.error!=='interrupted'&&e.error!=='canceled')toast('A voz falhou ('+e.error+')')};try{SS.resume()}catch(e){}SS.speak(u)}
-function testVoice(){unlockAudio();if(!SS){toast('Este navegador não tem voz disponível.');return}spokeOk=false;const was=voice;voice=true;say('Teste de voz. Se você está ouvindo, a voz está funcionando.',true);voice=was;
+  u.onstart=()=>{spokeOk=true};u.onerror=e=>{if(e.error!=='interrupted'&&e.error!=='canceled'&&!voiceErr){voiceErr=true;toast('A voz falhou ('+e.error+'). Toque em Testar voz.')}};try{SS.resume()}catch(e){}SS.speak(u)}
+function testVoice(){unlockAudio();voiceErr=false;if(!SS){toast('Este navegador não tem voz disponível.');return}spokeOk=false;const was=voice;voice=true;say('Teste de voz. Se você está ouvindo, a voz está funcionando.',true);voice=was;
   setTimeout(()=>{if(!spokeOk)toast(`O iPhone não deixou falar. Confira o modo silencioso, o volume e se há voz em português instalada. Vozes encontradas: ${(SS.getVoices()||[]).length}`)},2500)}
 /* no iPhone: cancelar e falar em seguida faz o Safari ficar mudo, por isso a fala nova espera um instante */
 function say(t,now){if(!voice||!SS)return;try{if(now||!SS.pending){speakNow(t);return}SS.cancel();setTimeout(()=>speakNow(t),250)}catch(e){}}
@@ -350,7 +369,7 @@ const falaD=m=>fmtD(m).replace(' m',' metros').replace(' km',' quilômetros');
 async function wake(on){try{if(on&&'wakeLock' in navigator)lock=await navigator.wakeLock.request('screen');else if(lock){await lock.release();lock=null}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(nav&&document.visibilityState==='visible')wake(true)});
 function goTo(dest){if(!NX)return;
-  if(!startGPS())return;nav=true;$('srch').hidden=true;$('turn').hidden=false;$('ticon').innerHTML=icon('straight');$('tdist').textContent='GPS';$('ttext').textContent='Procurando seu sinal…';
+  if(!startGPS())return;nav=true;document.body.classList.add('navon');$('srch').hidden=true;$('turn').hidden=false;$('ticon').innerHTML=icon('straight');$('tdist').textContent='GPS';$('ttext').textContent='Procurando seu sinal…';
   unlockAudio();if(me&&me.acc<200)beginRoute(dest);else{pending=dest;say('Procurando seu sinal de GPS',true)}
   navPanel(dest,null)}
 function beginRoute(dest){const r=route(me.x,me.y,dest);
@@ -370,15 +389,20 @@ function progress(){if(!rt||!me)return;
   if(dm<=200&&dm>70&&!spoke[mi]){spoke[mi]=1;say(`Em ${falaD(dm)}, ${m.text}`)}
   else if(dm<=40&&spoke[mi]!==2){spoke[mi]=2;say(m.kind==='arrive'?m.text:`Agora, ${m.text}`)}
   navPanel(rt.dest,{left,time:rt.time*left/rt.len});draw()}
+const VOZ_ON=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></svg>`,VOZ_OFF=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m16 9 5 6M21 9l-5 6"/></svg>`;
+const vozBtn=()=>`${voice?VOZ_ON:VOZ_OFF}<span>${voice?'Voz ligada':'Voz desligada'}</span>`;
 function navPanel(dest,info){
-  body.innerHTML=`<div class="navsum"><span class="big">${info?fmtD(info.left):'…'}</span><span class="big"><small>${info?fmtT(info.time):''}</small></span></div>
-  <p class="sub">até <strong>${esc(dest.label||'o destino')}</strong></p>
-  <div class="links"><button class="btn g" data-voz="1">${voice?'Voz ligada':'Voz desligada'}</button><button class="btn g" data-fol="1">Centralizar em mim</button><button class="btn g" data-tv="1">Testar voz</button><button class="btn g" data-end="1">Encerrar rota</button></div>`;
-  openSheet()}
+  if(!$('navp')){body.innerHTML=`<div id="navp"><div class="navtop"><div class="eta"><b id="n-time">…</b><span id="n-sub">Calculando a rota</span></div>
+    <button class="end" data-end="1" aria-label="Encerrar rota"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>Encerrar</button></div>
+    <div class="dest"><i></i><span>até <strong>${esc(dest.label||'o destino')}</strong></span></div>
+    <div class="tools"><button class="tool${voice?'':' off'}" data-voz="1">${vozBtn()}</button><button class="tool" data-fol="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg><span>Centralizar</span></button><button class="tool" data-tv="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/></svg><span>Testar voz</span></button></div></div>`;openSheet()}
+  if(!info)return;const arr=new Date(Date.now()+info.time*1000);
+  $('n-time').innerHTML=`${esc(fmtT(info.time))}<small>${esc(fmtD(info.left))}</small>`;
+  $('n-sub').textContent=`Chegada às ${String(arr.getHours()).padStart(2,'0')}:${String(arr.getMinutes()).padStart(2,'0')}`}
 function arrive(){const d=rt.dest,side=rt.man[rt.man.length-1].side||'';say(d.pt?`Você chegou ao ponto marcado${side}.`:`Você chegou. Número ${d.n||'sem número'}${side}.`);endNav(false);
-  body.innerHTML=`<h2>Você chegou!</h2><div class="plate"><span class="st">${esc(d.label||'')}</span></div><p class="sub">A casa fica${esc(side||' aqui')}.</p>
+  body.innerHTML=`<p class="kick">Entrega</p><h2>Você chegou!</h2><div class="dest"><i></i><span>${esc(d.label||'')}${d.pt?'':''} · a casa fica${esc(side||' aqui')}</span></div>
   <div class="links">${sv(d.la,d.lo)}<button class="btn g" data-home="1">Nova busca</button></div>`;sel=null;est=null;cur=null}
-function endNav(back){nav=false;rt=null;pending=null;follow=false;wake(false);$('turn').hidden=true;$('srch').hidden=false;try{speechSynthesis.cancel()}catch(e){}
+function endNav(back){nav=false;document.body.classList.remove('navon');rt=null;pending=null;follow=false;wake(false);$('turn').hidden=true;$('srch').hidden=false;try{speechSynthesis.cancel()}catch(e){}
   if(back){if(sel)showRec(sel);else if(est)showEst(S[est.s],est.n);else if(mark)showPoint(mark.x,mark.y);else home()}draw()}
 
 /* ---------- eventos ---------- */
@@ -387,7 +411,7 @@ body.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)retur
   else if(b.dataset.st)showStreet(S[+b.dataset.st]);else if(b.dataset.home){q.value='';$('clr').hidden=true;home();fit(town())}
   else if(b.dataset.go){if(cur)goTo(cur)}else if(b.dataset.end)endNav(true);
   else if(b.dataset.tv)testVoice();else if(b.dataset.fol){follow=true;if(me)flyTo(me.x,me.y,Math.max(sc,2.4),headUp&&me.hd!=null?-me.hd:rot)}
-  else if(b.dataset.voz){voice=!voice;try{localStorage.setItem('ent-voz',voice?'1':'0')}catch(x){}b.textContent=voice?'Voz ligada':'Voz desligada';if(!voice){try{SS&&SS.cancel()}catch(x){}}else{unlockAudio();say('Voz ligada',true)}}});
+  else if(b.dataset.voz){voice=!voice;try{localStorage.setItem('ent-voz',voice?'1':'0')}catch(x){}b.innerHTML=vozBtn();b.classList.toggle('off',!voice);if(!voice){try{SS&&SS.cancel()}catch(x){}}else{unlockAudio();say('Voz ligada',true)}}});
 let qt=0;q.addEventListener('input',()=>{$('clr').hidden=!q.value;clearTimeout(qt);qt=setTimeout(()=>search(q.value),180)});
 $('f').addEventListener('submit',e=>{e.preventDefault();q.blur();search(q.value);const f=body.querySelector('.row[data-r],.row[data-est]');if(f&&parse(q.value).num!=null)f.click()});
 $('clr').addEventListener('click',()=>{q.value='';$('clr').hidden=true;home();q.focus()});
@@ -450,7 +474,7 @@ function showPoint(x,y){const la=lat0-y/KY,lo=x/KX+lon0;sel=null;est=null;selStr
   let nr=null,nd=80;for(const r of R){const d=Math.hypot(r.x-x,r.y-y);if(d<nd){nd=d;nr=r}}
   mark={x,y,la,lo,n:0,pt:true,key:null,label:'ponto marcado'};cur=mark;dropT=performance.now();
   body.innerHTML=`<h2>Ponto marcado</h2><p class="sub">${nr?`Perto de ${esc(addrLine(nr))} (${Math.round(nd)} m)`:'Nenhuma casa do cadastro por perto'}</p>
-  <button class="btn p" data-go="1">Iniciar rota até aqui</button>
+  <button class="btn p" data-go="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8-8 18-2-8z"/></svg>Iniciar rota até aqui</button>
   <div class="links">${sv(la,lo)}${nr?`<button class="btn g" data-r="${nr.i}">Ver ${esc(nr.n?'nº '+nr.n:'casa')} mais perto</button>`:''}<button class="btn g" data-home="1">Nova busca</button></div>
   <p class="meta">Dica: segure o dedo no mapa para marcar qualquer lugar, como uma casa nova ou uma entrada de sítio.</p>`;
   openSheet();body.scrollTop=0;draw()}
