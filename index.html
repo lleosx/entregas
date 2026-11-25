@@ -333,11 +333,16 @@ function onFix(p){const[x,y]=P(p.coords.latitude,p.coords.longitude);let hd=null
   if(pending){const d=pending;pending=null;beginRoute(d)}
   else if(nav)progress();
   if(follow)flyTo(me.x,me.y,sc,nav&&headUp&&me.hd!=null?-me.hd:rot,600);else draw()}
-function say(t){if(!voice||!('speechSynthesis' in window))return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='pt-BR';u.rate=1.05;speechSynthesis.speak(u)}catch(e){}}
+const SS=window.speechSynthesis;let ptVoice=null;
+const pickVoice=()=>{try{const v=SS.getVoices();ptVoice=v.find(x=>/pt[-_]BR/i.test(x.lang)&&x.localService)||v.find(x=>/pt[-_]BR/i.test(x.lang))||v.find(x=>/^pt/i.test(x.lang))||null}catch(e){}};
+if(SS){pickVoice();try{SS.addEventListener('voiceschanged',pickVoice)}catch(e){SS.onvoiceschanged=pickVoice}}
+function speakNow(t){const u=new SpeechSynthesisUtterance(t);u.lang='pt-BR';if(ptVoice)u.voice=ptVoice;u.rate=1;u.volume=1;try{SS.resume()}catch(e){}SS.speak(u)}
+/* no iPhone: cancelar e falar em seguida faz o Safari ficar mudo, por isso a fala nova espera um instante */
+function say(t,now){if(!voice||!SS)return;try{if(now){speakNow(t);return}if(SS.speaking||SS.pending){SS.cancel();setTimeout(()=>speakNow(t),250)}else speakNow(t)}catch(e){}}
 async function wake(on){try{if(on&&'wakeLock' in navigator)lock=await navigator.wakeLock.request('screen');else if(lock){await lock.release();lock=null}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(nav&&document.visibilityState==='visible')wake(true)});
 function goTo(dest){if(!NX)return;
-  if('speechSynthesis' in window&&voice){try{speechSynthesis.speak(new SpeechSynthesisUtterance(''))}catch(e){}}
+  if(voice)say('Calculando a rota',true);
   if(!startGPS())return;nav=true;$('srch').hidden=true;$('turn').hidden=false;$('ticon').innerHTML=icon('straight');$('tdist').textContent='GPS';$('ttext').textContent='Procurando seu sinal…';
   if(me&&me.acc<200&&Date.now()-0>0)beginRoute(dest);else pending=dest;
   navPanel(dest,null)}
@@ -375,7 +380,7 @@ body.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)retur
   else if(b.dataset.st)showStreet(S[+b.dataset.st]);else if(b.dataset.home){q.value='';$('clr').hidden=true;home();fit(town())}
   else if(b.dataset.go){if(cur)goTo(cur)}else if(b.dataset.end)endNav(true);
   else if(b.dataset.fol){follow=true;if(me)flyTo(me.x,me.y,Math.max(sc,2.4),headUp&&me.hd!=null?-me.hd:rot)}
-  else if(b.dataset.voz){voice=!voice;try{localStorage.setItem('ent-voz',voice?'1':'0')}catch(x){}b.textContent=voice?'Voz ligada':'Voz desligada';if(!voice)try{speechSynthesis.cancel()}catch(x){}}});
+  else if(b.dataset.voz){voice=!voice;try{localStorage.setItem('ent-voz',voice?'1':'0')}catch(x){}b.textContent=voice?'Voz ligada':'Voz desligada';if(!voice){try{SS&&SS.cancel()}catch(x){}}else say('Voz ligada',true)}});
 let qt=0;q.addEventListener('input',()=>{$('clr').hidden=!q.value;clearTimeout(qt);qt=setTimeout(()=>search(q.value),180)});
 $('f').addEventListener('submit',e=>{e.preventDefault();q.blur();search(q.value);const f=body.querySelector('.row[data-r],.row[data-est]');if(f&&parse(q.value).num!=null)f.click()});
 $('clr').addEventListener('click',()=>{q.value='';$('clr').hidden=true;home();q.focus()});
