@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
-<title>Entregas Lunardelli</title>
+<title>Entregas</title>
 <meta name="theme-color" content="#0d1014">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -230,9 +230,16 @@ const ICON={straight:'M12 21V5M6 11l6-6 6 6',turnR:'M6 21v-8a4 4 0 0 1 4-4h9M15 
 const icon=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="${ICON[k]||ICON.straight}"/></svg>`;
 
 /* ---------- endereços (IBGE) ---------- */
+let CITIES=['Lunardelli'],NBASE=0,city=(()=>{try{return +localStorage.getItem('ent-cidade')||0}catch(e){return 0}})();
+function cityOf(x,y){let b=null,bd=1e18;for(let i=0;i<NBASE;i++){const r=R[i],d=(r.x-x)**2+(r.y-y)**2;if(d<bd){bd=d;b=r}}return b?b.c:city}
+const cityTag=c=>c!==city&&CITIES.length>1?CITIES[c]:'';
+function setCity(c){city=c;try{localStorage.setItem('ent-cidade',String(c))}catch(e){}document.querySelectorAll('[data-city]').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.city===c)));fit(town())}
+const citySeg=()=>CITIES.length>1?`<div class="seg" role="group" aria-label="Cidade" style="grid-template-columns:repeat(${CITIES.length},minmax(0,1fr))">${CITIES.map((n,i)=>`<button data-city="${i}" aria-pressed="${i===city}">${esc(n)}</button>`).join('')}</div>`:'';
 function prep(){
-  S=D.s.map((n,i)=>({i,name:n,disp:tc(n),norm:N(n),tok:N(n).split(' '),key:keyTok(n),recs:[]}));
-  R=D.r.map((a,i)=>{const la=a[7]/1e6,lo=a[8]/1e6,[x,y]=P(la,lo);const r={i,s:a[0],n:a[1],mod:a[2],comp:a[3],loc:D.l[a[4]],esp:a[5],est:a[6],la,lo,x,y,estN:N(a[6])};S[r.s].recs.push(r);return r});
+  CITIES=D.c||['Lunardelli'];if(city>=CITIES.length)city=0;
+  S=D.s.map((n,i)=>({i,c:D.sc?D.sc[i]:0,name:n,disp:tc(n),norm:N(n),tok:N(n).split(' '),key:keyTok(n),recs:[]}));
+  R=D.r.map((a,i)=>{const la=a[7]/1e6,lo=a[8]/1e6,[x,y]=P(la,lo);const r={i,s:a[0],c:S[a[0]].c,n:a[1],mod:a[2],comp:a[3],loc:D.l[a[4]],esp:a[5],est:a[6],la,lo,x,y,estN:N(a[6])};S[r.s].recs.push(r);return r});
+  NBASE=R.length;
   applyCad()}
 let rot=0,headUp=(()=>{try{return localStorage.getItem('ent-hu')!=='0'}catch(e){return true}})(),anim=null,dropT=0,mark=null,glideRaf=0;
 const w2s=(x,y)=>{const c=Math.cos(rot),s=Math.sin(rot);return[(x*c-y*s)*sc+tx,(x*s+y*c)*sc+ty]};
@@ -248,7 +255,7 @@ function fit(list,pad=60,instant){const c=Math.cos(rot),s=Math.sin(rot);
   const a=viewArea(),ns=Math.min(6,clampS(Math.min((a.w-pad)/Math.max(x1-x0,40),(a.h-pad)/Math.max(y1-y0,40))));
   const rx=(x0+x1)/2,ry=(y0+y1)/2,wx=rx*c+ry*s,wy=-rx*s+ry*c;
   if(instant){sc=ns;place(wx,wy,a.cx,a.cy);draw()}else flyTo(wx,wy,ns,rot)}
-function town(){const c=R.filter(r=>r.loc==='CENTRO'),m=a=>a.sort((x,y)=>x-y)[a.length>>1];const mx=m(c.map(r=>r.x)),my=m(c.map(r=>r.y));return c.filter(r=>Math.hypot(r.x-mx,r.y-my)<1100)}
+function town(){const c=R.filter(r=>r.loc==='CENTRO'&&r.c===city&&!r.mine),m=a=>a.sort((x,y)=>x-y)[a.length>>1];const mx=m(c.map(r=>r.x)),my=m(c.map(r=>r.y));return c.filter(r=>Math.hypot(r.x-mx,r.y-my)<1100)}
 function viewArea(){const tb=(nav?$('turn'):$('f')).getBoundingClientRect().bottom+8,bot=(sd?sheet.getBoundingClientRect().top:innerHeight-shH(shState))-8;const h=Math.max(120,bot-tb);return{w:W,h,cx:W/2,cy:tb+h/2}}
 function centerOn(x,y,minSc){flyTo(x,y,minSc?Math.max(sc,minSc):sc,rot)}
 function zoomAt(f,px,py){const p=s2w(px,py);sc=clampS(sc*f);place(p[0],p[1],px,py);draw()}
@@ -304,30 +311,35 @@ function paint(){
 
 /* ---------- telas ---------- */
 const addrLine=r=>`${S[r.s].disp}, ${r.n?r.n:'s/n'}${r.mod?' '+r.mod:''}`;
-const subLine=r=>[r.est?tc(r.est):ESP[r.esp]||'',r.comp?tc(r.comp):'',tc(r.loc)].filter(Boolean).join(' · ');
+const subLine=r=>[r.est?tc(r.est):ESP[r.esp]||'',r.comp?tc(r.comp):'',r.loc==='Cadastro próprio'?'':tc(r.loc),cityTag(r.c)].filter(Boolean).join(' · ');
 const rowHTML=(r,tag)=>`<button class="row" data-r="${r.i}"><span class="pin">${esc(tag||'•')}</span><span class="t"><strong>${esc(addrLine(r))}</strong><span>${esc(subLine(r))}</span></span></button>`;
 function streetRow(st){const nums=st.recs.filter(r=>r.n).map(r=>r.n);const rng=nums.length?`nº ${Math.min(...nums)} a ${Math.max(...nums)}`:'sem números';
-  return `<button class="row" data-st="${st.i}"><span class="pin">${st.recs.length}</span><span class="t"><strong>${esc(st.disp)}</strong><span>${esc(rng+' · '+tc(st.recs[0].loc))}</span></span></button>`}
+  return `<button class="row" data-st="${st.i}"><span class="pin">${st.recs.length}</span><span class="t"><strong>${esc(st.disp)}</strong><span>${esc([rng,st.recs[0]?tc(st.recs[0].loc):'',cityTag(st.c)].filter(Boolean).join(' · '))}</span></span></button>`}
 function home(){sel=null;est=null;mark=null;hiWay=null;selStreet=null;
   const rec=recent.map(i=>R[i]).filter(Boolean);
-  body.innerHTML=`<p class="kick"><img src="logo-ls.png" alt="" width="27" height="20">Entregas Lunardelli</p><h2>Para onde é a entrega?</h2><p class="sub">Digite a rua e o número. No mapa: toque numa casa ou rua, segure o dedo para marcar um ponto, e gire com dois dedos.</p>
+  const sts=S.filter(t=>t.c===city&&t.recs.length).sort((a,b)=>a.disp.localeCompare(b.disp));
+  body.innerHTML=`<p class="kick"><img src="logo-ls.png" alt="" width="27" height="20">Entregas · ${esc(CITIES[city])}</p><h2>Para onde é a entrega?</h2><p class="sub">Digite a rua e o número. No mapa: toque numa casa ou rua, segure o dedo para marcar um ponto, e gire com dois dedos.</p>
+  ${citySeg()}
   ${rec.length?`<div class="lab">Buscados recentemente</div>${rec.map(r=>rowHTML(r,r.n||'SN')).join('')}`:''}
-  <div class="lab">Todas as ruas (${S.length})</div>${[...S].sort((a,b)=>a.disp.localeCompare(b.disp)).map(streetRow).join('')}
-<p class="foot">${R.length.toLocaleString('pt-BR')} endereços do Censo 2022 do IBGE (CNEFE) e ruas do OpenStreetMap. Casas construídas depois de 2022 não aparecem; nesses casos o app estima a posição pelos vizinhos.</p>`;
+  <div class="lab">Ruas de ${esc(CITIES[city])} (${sts.length})</div>${sts.map(streetRow).join('')}
+<p class="foot">${NBASE.toLocaleString('pt-BR')} endereços de ${esc(CITIES.join(' e '))} do Censo 2022 do IBGE (CNEFE) e ruas do OpenStreetMap. Casas construídas depois de 2022 não aparecem; nesses casos o app estima a posição pelos vizinhos.</p>`;
   draw()}
 function parse(text){let t=N(text).split(' ').filter(Boolean);let num=null;
   if(t.length>1&&/^\d+$/.test(t[t.length-1]))num=+t.pop();
   let name=t.filter(w=>!TYPES.has(w));if(!name.length)name=t;return{name,num}}
-function matchStreets(tok){if(!tok.length)return[];const full=tok.join(' ');
-  return S.map(st=>{if(!tok.every(q=>st.tok.some(w=>w.startsWith(q))))return null;let s2=st.recs.length/1000;if(st.norm.includes(full))s2+=5;if(st.tok.some(w=>w===tok[0]))s2+=2;return[st,s2]}).filter(Boolean).sort((a,b)=>b[1]-a[1]).map(a=>a[0])}
-function search(text){est=null;const{name,num}=parse(text);if(!name.length){home();return}
-  const sts=matchStreets(name);let h='';
+function matchStreets(tok,only){if(!tok.length)return[];const full=tok.join(' ');
+  return S.map(st=>{if(only!=null&&st.c!==only)return null;if(!st.recs.length)return null;if(!tok.every(q=>st.tok.some(w=>w.startsWith(q))))return null;let s2=st.recs.length/1000+(st.c===city?3:0);if(st.norm.includes(full))s2+=5;if(st.tok.some(w=>w===tok[0]))s2+=2;return[st,s2]}).filter(Boolean).sort((a,b)=>b[1]-a[1]).map(a=>a[0])}
+function stripCity(text){if(CITIES.length>1){const j=N(text),m=j.match(/(?:^| )(?:EM |DE )?(LUNARDELLI|(?:SAO JOAO )?(?:DO )?IVAI|SJ)$/);
+    if(m){const rest=j.slice(0,j.length-m[0].length).trim();if(rest)return{text:rest,only:/LUNARDELLI/.test(m[1])?0:1}}}return{text,only:null}}
+function search(text){est=null;let only;({text,only}=stripCity(text));
+  let{name,num}=parse(text);if(!name.length){home();return}
+  const sts=matchStreets(name,only);let h='';
   if(num!=null&&sts.length){
     for(const st of sts.slice(0,4)){const ex=st.recs.filter(r=>r.n===num);
-      if(ex.length)h+=`<div class="lab">${esc(st.disp)}</div>`+ex.map(r=>rowHTML(r,r.n)).join('');
+      if(ex.length)h+=`<div class="lab">${esc(st.disp)}${cityTag(st.c)?' · '+esc(cityTag(st.c)):''}</div>`+ex.map(r=>rowHTML(r,r.n)).join('');
       else{const near=nearby(st,num);if(near.length)h+=`<div class="lab">${esc(st.disp)} — nº ${num} não está no cadastro</div><button class="row" data-est="${st.i}:${num}"><span class="pin">≈</span><span class="t"><strong>${esc(st.disp)}, ${num} (posição estimada)</strong><span>Calculada pelos vizinhos do mesmo lado da rua</span></span></button>`+near.map(r=>rowHTML(r,r.n)).join('')}}}
   if(num==null||!h){if(sts.length)h+=`<div class="lab">Ruas</div>`+sts.slice(0,12).map(streetRow).join('')}
-  if(num==null){const places=R.filter(r=>r.est&&name.every(q=>r.estN.split(' ').some(w=>w.startsWith(q)))).slice(0,10);if(places.length)h+=`<div class="lab">Lugares</div>`+places.map(r=>rowHTML(r,r.n||'SN')).join('')}
+  if(num==null){const places=R.filter(r=>r.est&&(only==null||r.c===only)&&name.every(q=>r.estN.split(' ').some(w=>w.startsWith(q)))).sort((a,b)=>(b.c===city)-(a.c===city)).slice(0,10);if(places.length)h+=`<div class="lab">Lugares</div>`+places.map(r=>rowHTML(r,r.n||'SN')).join('')}
   body.innerHTML=h||`<h2>Nada encontrado</h2><p class="sub">Confira o nome da rua. Dá pra digitar só um pedaço, como “tiber” para Rua Tiberio José de Almeida Filho.</p>`;
   openSheet();
   if(sts.length===1&&num==null){selStreet=sts[0];fit(sts[0].recs,90)}else{selStreet=null;draw()}}
@@ -437,13 +449,13 @@ body.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)retur
   if(b.dataset.r)showRec(R[+b.dataset.r]);else if(b.dataset.est){const[s,n]=b.dataset.est.split(':');showEst(S[+s],+n)}
   else if(b.dataset.st)showStreet(S[+b.dataset.st]);else if(b.dataset.home){q.value='';$('clr').hidden=true;home();fit(town())}
   else if(b.dataset.go){if(cur)goTo(cur)}else if(b.dataset.end)endNav(true);
-  else if(b.dataset.tv)testVoice();else if(b.dataset.theme)setTheme(b.dataset.theme);else if(b.dataset.opt)toggleOpt(b.dataset.opt);else if(b.dataset.cfg)showSettings();else if(b.dataset.new)newHouse();else if(b.dataset.edit)editRec(R[+b.dataset.edit]);else if(b.dataset.mine)showMine();
+  else if(b.dataset.tv)testVoice();else if(b.dataset.theme)setTheme(b.dataset.theme);else if(b.dataset.city!=null){setCity(+b.dataset.city);if(body.querySelector('h2')&&body.querySelector('h2').textContent==='Configurações')showSettings();else home()}else if(b.dataset.opt)toggleOpt(b.dataset.opt);else if(b.dataset.cfg)showSettings();else if(b.dataset.new)newHouse();else if(b.dataset.edit)editRec(R[+b.dataset.edit]);else if(b.dataset.mine)showMine();
   else if(b.dataset.wname)editWay(+b.dataset.wname);else if(b.dataset.save)saveForm();else if(b.dataset.cancel)closeForm();else if(b.dataset.del)delForm();
   else if(b.dataset.here){if(me)flyTo(me.x,me.y,Math.max(sc,3),rot);else{startGPS();toast('Procurando seu sinal de GPS…')}}else if(b.dataset.exp)exportCad();else if(b.dataset.imp)$('impf').click();
   else if(b.dataset.ed){const h=CAD.houses.find(x=>x.id===b.dataset.ed);if(h)houseForm(h)}else if(b.dataset.fol){follow=true;if(me)flyTo(me.x,me.y,Math.max(sc,2.4),headUp&&me.hd!=null?-me.hd:rot)}
   else if(b.dataset.voz){voice=!voice;try{localStorage.setItem('ent-voz',voice?'1':'0')}catch(x){}b.innerHTML=vozBtn();b.classList.toggle('off',!voice);if(!voice){try{SS&&SS.cancel()}catch(x){}}else{unlockAudio();say('Voz ligada',true)}}});
 let qt=0;q.addEventListener('input',()=>{$('clr').hidden=!q.value;clearTimeout(qt);qt=setTimeout(()=>search(q.value),180)});
-$('f').addEventListener('submit',e=>{e.preventDefault();q.blur();search(q.value);const f=body.querySelector('.row[data-r],.row[data-est]');if(f&&parse(q.value).num!=null)f.click()});
+$('f').addEventListener('submit',e=>{e.preventDefault();q.blur();search(q.value);const f=body.querySelector('.row[data-r],.row[data-est]');if(f&&parse(stripCity(q.value).text).num!=null)f.click()});
 $('clr').addEventListener('click',()=>{q.value='';$('clr').hidden=true;home();q.focus()});
 /* gaveta arrastável: baixa, média e alta */
 let shState='half',shPx=0;const shH=st=>{const vh=innerHeight;return st==='custom'?Math.max(90,Math.min(vh*.92,shPx)):st==='mini'?Math.min(150,Math.round(vh*.17)):st==='full'?Math.round(vh*.88):Math.round(vh*.5)};
@@ -521,11 +533,12 @@ function toggleOpt(k){if(k==='voz'){voice=!voice;try{localStorage.setItem('ent-v
 const swRow=(k,on,t,sub)=>`<button class="set" role="switch" aria-checked="${on}" data-opt="${k}"><span class="t">${t}<small>${sub}</small></span><span class="sw"></span></button>`;
 const goRow=(attr,t,sub)=>`<button class="set" ${attr}><span class="t">${t}${sub?`<small>${sub}</small>`:''}</span>${CHEV}</button>`;
 function showSettings(){if(nav)return;sel=null;est=null;mark=null;hiWay=null;selStreet=null;const th=curTheme(),nw=Object.keys(CAD.ways).length;
-  body.innerHTML=`<p class="kick"><img src="logo-ls.png" alt="" width="27" height="20">Entregas Lunardelli</p><h2>Configurações</h2>
+  body.innerHTML=`<p class="kick"><img src="logo-ls.png" alt="" width="27" height="20">Entregas · ${esc(CITIES[city])}</p><h2>Configurações</h2>
+  ${CITIES.length>1?`<div class="sec"><h3>Cidade</h3>${citySeg()}</div>`:''}
   <div class="sec"><h3>Aparência</h3><div class="seg" role="group" aria-label="Tema">${[['auto','Automático'],['light','Claro'],['dark','Escuro']].map(([k,l])=>`<button data-theme="${k}" aria-pressed="${th===k}">${l}</button>`).join('')}</div></div>
   <div class="sec"><h3>Navegação</h3><div class="card">${swRow('voz',voice,'Voz nas instruções','Fala as curvas e a chegada')}${swRow('hu',headUp,'Mapa gira com você','Durante a rota, a frente fica sempre para cima')}${goRow('data-tv="1"','Testar voz','Confere se o celular está falando')}</div></div>
   <div class="sec"><h3>Meu cadastro</h3><div class="card">${goRow('data-new="1"','Cadastrar casa','Casa que não está no mapa')}${goRow('data-mine="1"','Minhas casas',`${CAD.houses.length} endereço${CAD.houses.length===1?'':'s'} · ${nw} nome${nw===1?'':'s'} de rua`)}${goRow('data-exp="1"','Salvar cópia de segurança','Baixa um arquivo com o seu cadastro')}${goRow('data-imp="1"','Restaurar cópia','Traz de volta um arquivo salvo')}</div></div>
-  <div class="sec"><h3>Sobre</h3><div class="card"><div class="set" style="cursor:default"><span class="t">Dados do mapa<small>${R.length.toLocaleString('pt-BR')} endereços do Censo 2022 (IBGE) · ruas do OpenStreetMap · feito por Leonardo Satin</small></span></div></div></div>
+  <div class="sec"><h3>Sobre</h3><div class="card"><div class="set" style="cursor:default"><span class="t">Dados do mapa<small>${NBASE.toLocaleString('pt-BR')} endereços de ${esc(CITIES.join(' e '))} (IBGE, Censo 2022) · ruas do OpenStreetMap · feito por Leonardo Satin</small></span></div></div></div>
   <div class="links" style="margin-top:16px"><button class="btn g" data-home="1">Voltar</button></div>`;
   setSheet(innerHeight>700?'full':'half');body.scrollTop=0;draw()}
 $('cfg').addEventListener('click',showSettings);
@@ -534,21 +547,21 @@ $('cfg').addEventListener('click',showSettings);
 let CAD={houses:[],ways:{}},pick=null;
 try{const c=JSON.parse(localStorage.getItem('ent-cad')||'null');if(c&&Array.isArray(c.houses))CAD={houses:c.houses,ways:c.ways||{}}}catch(e){}
 const saveCad=()=>{try{localStorage.setItem('ent-cad',JSON.stringify(CAD))}catch(e){toast('Não consegui salvar neste celular.')}};
-function findStreet(name){const k=keyTok(name),n=N(name);let best=S.find(t=>t.norm===n);if(best)return best;
-  best=S.find(t=>t.key.size&&t.key.size===k.size&&[...k].every(z=>t.key.has(z)));return best||null}
-function streetFor(name){let st=findStreet(name);if(st)return st;const n=N(name);st={i:S.length,name:n,disp:name.trim().replace(/\s+/g,' '),norm:n,tok:n.split(' '),key:keyTok(name),recs:[],mine:true};S.push(st);return st}
+function findStreet(name,c){const k=keyTok(name),n=N(name);let best=S.find(t=>t.c===c&&t.norm===n);if(best)return best;
+  best=S.find(t=>t.c===c&&t.key.size&&t.key.size===k.size&&[...k].every(z=>t.key.has(z)));return best||null}
+function streetFor(name,c){let st=findStreet(name,c);if(st)return st;const n=N(name);st={i:S.length,c,name:n,disp:name.trim().replace(/\s+/g,' '),norm:n,tok:n.split(' '),key:keyTok(name),recs:[],mine:true};S.push(st);return st}
 function applyCad(){
   WAYS.forEach(w=>{w.name=w.orig;w.key=keyTok(w.name)});
   for(const[i,nm]of Object.entries(CAD.ways)){const w=WAYS[+i];if(w&&nm){w.name=nm;w.key=keyTok(nm)}}
-  for(const h of CAD.houses){const st=streetFor(h.street||'Rua sem nome');const[x,y]=P(h.la,h.lo);
+  for(const h of CAD.houses){const[x,y]=P(h.la,h.lo);const hc=h.ref!=null&&R[h.ref]?R[h.ref].c:cityOf(x,y);const st=streetFor(h.street||'Rua sem nome',hc);
     if(h.ref!=null&&R[h.ref]&&!R[h.ref].mine){const r=R[h.ref],old=S[r.s];old.recs=old.recs.filter(o=>o!==r);
-      Object.assign(r,{s:st.i,n:+h.n||0,mod:'',comp:h.comp||r.comp,la:h.la,lo:h.lo,x,y,mine:'edit',cid:h.id});st.recs.push(r)}
-    else if(h.ref==null){const r={i:R.length,s:st.i,n:+h.n||0,mod:'',comp:h.comp||'',loc:'Cadastro próprio',esp:1,est:'',la:h.la,lo:h.lo,x,y,estN:'',mine:'new',cid:h.id};R.push(r);st.recs.push(r)}}}
+      Object.assign(r,{s:st.i,c:hc,n:+h.n||0,mod:'',comp:h.comp||r.comp,la:h.la,lo:h.lo,x,y,mine:'edit',cid:h.id});st.recs.push(r)}
+    else if(h.ref==null){const r={i:R.length,s:st.i,c:hc,n:+h.n||0,mod:'',comp:h.comp||'',loc:'Cadastro próprio',esp:1,est:'',la:h.la,lo:h.lo,x,y,estN:'',mine:'new',cid:h.id};R.push(r);st.recs.push(r)}}}
 function refresh(){const keep=sel&&sel.cid;prep();draw();return keep}
 function placePick(){const a=viewArea(),el=$('pick');el.style.left=a.cx+'px';el.style.top=a.cy+'px'}
 function startPick(x,y){pick=true;$('pick').hidden=false;sel=null;est=null;mark=null;selStreet=null;hiWay=null;flyTo(x,y,Math.max(sc,3.2),rot);placePick()}
 function stopPick(){pick=null;$('pick').hidden=true;draw()}
-const dl=()=>`<datalist id="dl-ruas">${[...new Set([...S.map(t=>t.disp),...WAYS.map(w=>w.name).filter(Boolean)])].sort((a,b)=>a.localeCompare(b)).map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`;
+const dl=()=>`<datalist id="dl-ruas">${[...new Set([...S.filter(t=>t.c===city).map(t=>t.disp),...WAYS.map(w=>w.name).filter(Boolean)])].sort((a,b)=>a.localeCompare(b)).map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`;
 let form=null;
 function houseForm(h,ref){form={kind:'house',h,ref};const r=ref!=null?R[ref]:null;
   const street=h?h.street:r?S[r.s].disp:'',num=h?h.n:r&&r.n?r.n:'',comp=h?h.comp:r?r.comp:'';
