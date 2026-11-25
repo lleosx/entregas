@@ -338,18 +338,18 @@ const pickVoice=()=>{try{const v=SS.getVoices();ptVoice=v.find(x=>/pt[-_]BR/i.te
 if(SS){pickVoice();try{SS.addEventListener('voiceschanged',pickVoice)}catch(e){SS.onvoiceschanged=pickVoice}}
 function speakNow(t){const u=new SpeechSynthesisUtterance(t);u.lang='pt-BR';if(ptVoice)u.voice=ptVoice;u.rate=1;u.volume=1;try{SS.resume()}catch(e){}SS.speak(u)}
 /* no iPhone: cancelar e falar em seguida faz o Safari ficar mudo, por isso a fala nova espera um instante */
-function say(t,now){if(!voice||!SS)return;try{if(now){speakNow(t);return}if(SS.speaking||SS.pending){SS.cancel();setTimeout(()=>speakNow(t),250)}else speakNow(t)}catch(e){}}
+function say(t,now){if(!voice||!SS)return;try{if(now||!SS.pending){speakNow(t);return}SS.cancel();setTimeout(()=>speakNow(t),250)}catch(e){}}
+const falaD=m=>fmtD(m).replace(' m',' metros').replace(' km',' quilômetros');
 async function wake(on){try{if(on&&'wakeLock' in navigator)lock=await navigator.wakeLock.request('screen');else if(lock){await lock.release();lock=null}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(nav&&document.visibilityState==='visible')wake(true)});
 function goTo(dest){if(!NX)return;
-  if(voice)say('Calculando a rota',true);
   if(!startGPS())return;nav=true;$('srch').hidden=true;$('turn').hidden=false;$('ticon').innerHTML=icon('straight');$('tdist').textContent='GPS';$('ttext').textContent='Procurando seu sinal…';
-  if(me&&me.acc<200&&Date.now()-0>0)beginRoute(dest);else pending=dest;
+  if(me&&me.acc<200)beginRoute(dest);else{pending=dest;say('Procurando seu sinal de GPS',true)}
   navPanel(dest,null)}
 function beginRoute(dest){const r=route(me.x,me.y,dest);
   if(r.err){toast(r.err==='far'?'Você está fora da área do mapa de Lunardelli.':'Não encontrei um caminho até esse endereço.');endNav(true);return}
   rt=r;prog=0;offCount=0;spoke={};follow=true;wake(true);
-  const m=rt.man[0];say(`${m.text}. ${fmtD(rt.len)} até ${dest.label||'o destino'}.`);spoke[0]=2;progress();flyTo(me.x,me.y,Math.max(sc,2.8),headUp&&me.hd!=null?-me.hd:rot,700)}
+  const m=rt.man[0];say(`Rota iniciada. ${m.text}. São ${falaD(rt.len)} até ${dest.label||'o destino'}, cerca de ${fmtT(rt.time).replace(/^1 min$/,'1 minuto').replace(/min$/,'minutos')}.`);spoke[0]=2;progress();flyTo(me.x,me.y,Math.max(sc,2.8),headUp&&me.hd!=null?-me.hd:rot,700)}
 function progress(){if(!rt||!me)return;
   let best=1e9,bi=prog,bt=0;const from=Math.max(1,prog-2),to=Math.min(rt.pts.length-1,prog+60);
   for(let i=from;i<=to;i++){const a=rt.pts[i-1],b=rt.pts[i],dx=b[0]-a[0],dy=b[1]-a[1],L=dx*dx+dy*dy||1;let t=((me.x-a[0])*dx+(me.y-a[1])*dy)/L;t=Math.max(0,Math.min(1,t));const d=Math.hypot(me.x-a[0]-t*dx,me.y-a[1]-t*dy);if(d<best){best=d;bi=i;bt=t}}
@@ -360,7 +360,7 @@ function progress(){if(!rt||!me)return;
   if(dDest<25||left<15){arrive();return}
   let mi=rt.man.findIndex(m=>m.at>along+4);if(mi<0)mi=rt.man.length-1;const m=rt.man[mi],dm=m.at-along;
   $('ticon').innerHTML=icon(m.kind);$('tdist').textContent=fmtD(dm);$('ttext').textContent=m.text;
-  if(dm<=200&&dm>70&&!spoke[mi]){spoke[mi]=1;say(`Em ${fmtD(dm).replace(' m',' metros').replace(' km',' quilômetros')}, ${m.text}`)}
+  if(dm<=200&&dm>70&&!spoke[mi]){spoke[mi]=1;say(`Em ${falaD(dm)}, ${m.text}`)}
   else if(dm<=40&&spoke[mi]!==2){spoke[mi]=2;say(m.kind==='arrive'?m.text:`Agora, ${m.text}`)}
   navPanel(rt.dest,{left,time:rt.time*left/rt.len});draw()}
 function navPanel(dest,info){
