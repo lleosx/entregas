@@ -267,7 +267,7 @@ function home(){sel=null;est=null;mark=null;hiWay=null;selStreet=null;
   body.innerHTML=`<h2>Para onde é a entrega?</h2><p class="sub">Digite a rua e o número. No mapa: toque numa casa ou rua, segure o dedo para marcar um ponto, e gire com dois dedos.</p>
   ${rec.length?`<div class="lab">Buscados recentemente</div>${rec.map(r=>rowHTML(r,r.n||'SN')).join('')}`:''}
   <div class="lab">Todas as ruas (${S.length})</div>${[...S].sort((a,b)=>a.disp.localeCompare(b.disp)).map(streetRow).join('')}
-  <p class="foot">${R.length.toLocaleString('pt-BR')} endereços do Censo 2022 do IBGE (CNEFE) e ruas do OpenStreetMap. Casas construídas depois de 2022 não aparecem; nesses casos o app estima a posição pelos vizinhos.</p>`;
+  <div class="links" style="margin-top:14px"><button class="btn g" data-tv="1">Testar voz</button></div><p class="foot">${R.length.toLocaleString('pt-BR')} endereços do Censo 2022 do IBGE (CNEFE) e ruas do OpenStreetMap. Casas construídas depois de 2022 não aparecem; nesses casos o app estima a posição pelos vizinhos.</p>`;
   draw()}
 function parse(text){let t=N(text).split(' ').filter(Boolean);let num=null;
   if(t.length>1&&/^\d+$/.test(t[t.length-1]))num=+t.pop();
@@ -336,7 +336,14 @@ function onFix(p){const[x,y]=P(p.coords.latitude,p.coords.longitude);let hd=null
 const SS=window.speechSynthesis;let ptVoice=null;
 const pickVoice=()=>{try{const v=SS.getVoices();ptVoice=v.find(x=>/pt[-_]BR/i.test(x.lang)&&x.localService)||v.find(x=>/pt[-_]BR/i.test(x.lang))||v.find(x=>/^pt/i.test(x.lang))||null}catch(e){}};
 if(SS){pickVoice();try{SS.addEventListener('voiceschanged',pickVoice)}catch(e){SS.onvoiceschanged=pickVoice}}
-function speakNow(t){const u=new SpeechSynthesisUtterance(t);u.lang='pt-BR';if(ptVoice)u.voice=ptVoice;u.rate=1;u.volume=1;try{SS.resume()}catch(e){}SS.speak(u)}
+let spokeOk=false,silentEl=null;
+/* iPhone: faz o áudio do app tocar como mídia (ignora a chave do silencioso) e "acorda" o som no toque do botão */
+function unlockAudio(){try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}
+  try{if(!silentEl){silentEl=new Audio('data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==');silentEl.setAttribute('playsinline','')}silentEl.play().catch(()=>{})}catch(e){}}
+function speakNow(t){const u=new SpeechSynthesisUtterance(t);u.lang='pt-BR';if(ptVoice)u.voice=ptVoice;u.rate=1;u.volume=1;
+  u.onstart=()=>{spokeOk=true};u.onerror=e=>{if(e.error!=='interrupted'&&e.error!=='canceled')toast('A voz falhou ('+e.error+')')};try{SS.resume()}catch(e){}SS.speak(u)}
+function testVoice(){unlockAudio();if(!SS){toast('Este navegador não tem voz disponível.');return}spokeOk=false;const was=voice;voice=true;say('Teste de voz. Se você está ouvindo, a voz está funcionando.',true);voice=was;
+  setTimeout(()=>{if(!spokeOk)toast(`O iPhone não deixou falar. Confira o modo silencioso, o volume e se há voz em português instalada. Vozes encontradas: ${(SS.getVoices()||[]).length}`)},2500)}
 /* no iPhone: cancelar e falar em seguida faz o Safari ficar mudo, por isso a fala nova espera um instante */
 function say(t,now){if(!voice||!SS)return;try{if(now||!SS.pending){speakNow(t);return}SS.cancel();setTimeout(()=>speakNow(t),250)}catch(e){}}
 const falaD=m=>fmtD(m).replace(' m',' metros').replace(' km',' quilômetros');
@@ -344,7 +351,7 @@ async function wake(on){try{if(on&&'wakeLock' in navigator)lock=await navigator.
 document.addEventListener('visibilitychange',()=>{if(nav&&document.visibilityState==='visible')wake(true)});
 function goTo(dest){if(!NX)return;
   if(!startGPS())return;nav=true;$('srch').hidden=true;$('turn').hidden=false;$('ticon').innerHTML=icon('straight');$('tdist').textContent='GPS';$('ttext').textContent='Procurando seu sinal…';
-  if(me&&me.acc<200)beginRoute(dest);else{pending=dest;say('Procurando seu sinal de GPS',true)}
+  unlockAudio();if(me&&me.acc<200)beginRoute(dest);else{pending=dest;say('Procurando seu sinal de GPS',true)}
   navPanel(dest,null)}
 function beginRoute(dest){const r=route(me.x,me.y,dest);
   if(r.err){toast(r.err==='far'?'Você está fora da área do mapa de Lunardelli.':'Não encontrei um caminho até esse endereço.');endNav(true);return}
@@ -366,7 +373,7 @@ function progress(){if(!rt||!me)return;
 function navPanel(dest,info){
   body.innerHTML=`<div class="navsum"><span class="big">${info?fmtD(info.left):'…'}</span><span class="big"><small>${info?fmtT(info.time):''}</small></span></div>
   <p class="sub">até <strong>${esc(dest.label||'o destino')}</strong></p>
-  <div class="links"><button class="btn g" data-voz="1">${voice?'Voz ligada':'Voz desligada'}</button><button class="btn g" data-fol="1">Centralizar em mim</button><button class="btn g" data-end="1">Encerrar rota</button></div>`;
+  <div class="links"><button class="btn g" data-voz="1">${voice?'Voz ligada':'Voz desligada'}</button><button class="btn g" data-fol="1">Centralizar em mim</button><button class="btn g" data-tv="1">Testar voz</button><button class="btn g" data-end="1">Encerrar rota</button></div>`;
   openSheet()}
 function arrive(){const d=rt.dest,side=rt.man[rt.man.length-1].side||'';say(d.pt?`Você chegou ao ponto marcado${side}.`:`Você chegou. Número ${d.n||'sem número'}${side}.`);endNav(false);
   body.innerHTML=`<h2>Você chegou!</h2><div class="plate"><span class="st">${esc(d.label||'')}</span></div><p class="sub">A casa fica${esc(side||' aqui')}.</p>
@@ -379,8 +386,8 @@ body.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)retur
   if(b.dataset.r)showRec(R[+b.dataset.r]);else if(b.dataset.est){const[s,n]=b.dataset.est.split(':');showEst(S[+s],+n)}
   else if(b.dataset.st)showStreet(S[+b.dataset.st]);else if(b.dataset.home){q.value='';$('clr').hidden=true;home();fit(town())}
   else if(b.dataset.go){if(cur)goTo(cur)}else if(b.dataset.end)endNav(true);
-  else if(b.dataset.fol){follow=true;if(me)flyTo(me.x,me.y,Math.max(sc,2.4),headUp&&me.hd!=null?-me.hd:rot)}
-  else if(b.dataset.voz){voice=!voice;try{localStorage.setItem('ent-voz',voice?'1':'0')}catch(x){}b.textContent=voice?'Voz ligada':'Voz desligada';if(!voice){try{SS&&SS.cancel()}catch(x){}}else say('Voz ligada',true)}});
+  else if(b.dataset.tv)testVoice();else if(b.dataset.fol){follow=true;if(me)flyTo(me.x,me.y,Math.max(sc,2.4),headUp&&me.hd!=null?-me.hd:rot)}
+  else if(b.dataset.voz){voice=!voice;try{localStorage.setItem('ent-voz',voice?'1':'0')}catch(x){}b.textContent=voice?'Voz ligada':'Voz desligada';if(!voice){try{SS&&SS.cancel()}catch(x){}}else{unlockAudio();say('Voz ligada',true)}}});
 let qt=0;q.addEventListener('input',()=>{$('clr').hidden=!q.value;clearTimeout(qt);qt=setTimeout(()=>search(q.value),180)});
 $('f').addEventListener('submit',e=>{e.preventDefault();q.blur();search(q.value);const f=body.querySelector('.row[data-r],.row[data-est]');if(f&&parse(q.value).num!=null)f.click()});
 $('clr').addEventListener('click',()=>{q.value='';$('clr').hidden=true;home();q.focus()});
