@@ -230,7 +230,7 @@ const ICON={straight:'M12 21V5M6 11l6-6 6 6',turnR:'M6 21v-8a4 4 0 0 1 4-4h9M15 
 const icon=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="${ICON[k]||ICON.straight}"/></svg>`;
 
 /* ---------- endereços (IBGE) ---------- */
-let CITIES=['Lunardelli'],NBASE=0,city=(()=>{try{return +localStorage.getItem('ent-cidade')||0}catch(e){return 0}})();
+let CITIES=['Lunardelli'],CC=[],NBASE=0,city=(()=>{try{return +localStorage.getItem('ent-cidade')||0}catch(e){return 0}})();
 function cityOf(x,y){let b=null,bd=1e18;for(let i=0;i<NBASE;i++){const r=R[i],d=(r.x-x)**2+(r.y-y)**2;if(d<bd){bd=d;b=r}}return b?b.c:city}
 const cityTag=c=>c!==city&&CITIES.length>1?CITIES[c]:'';
 function setCity(c){city=c;try{localStorage.setItem('ent-cidade',String(c))}catch(e){}document.querySelectorAll('[data-city]').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.city===c)));fit(town())}
@@ -240,6 +240,8 @@ function prep(){
   S=D.s.map((n,i)=>({i,c:D.sc?D.sc[i]:0,name:n,disp:tc(n),norm:N(n),tok:N(n).split(' '),key:keyTok(n),recs:[]}));
   R=D.r.map((a,i)=>{const la=a[7]/1e6,lo=a[8]/1e6,[x,y]=P(la,lo);const r={i,s:a[0],c:S[a[0]].c,n:a[1],mod:a[2],comp:a[3],loc:D.l[a[4]],esp:a[5],est:a[6],la,lo,x,y,estN:N(a[6])};S[r.s].recs.push(r);return r});
   NBASE=R.length;
+  CC=CITIES.map((n,ci)=>{const c=R.filter(r=>r.c===ci&&r.loc==='CENTRO'),m=a=>a.slice().sort((x,y)=>x-y)[a.length>>1];if(!c.length)return null;
+    const mx=m(c.map(r=>r.x)),my=m(c.map(r=>r.y)),core=c.filter(r=>Math.hypot(r.x-mx,r.y-my)<1100);return{name:n,x:m(core.map(r=>r.x)),y:m(core.map(r=>r.y))}});
   applyCad()}
 let rot=0,headUp=(()=>{try{return localStorage.getItem('ent-hu')!=='0'}catch(e){return true}})(),anim=null,dropT=0,mark=null,glideRaf=0;
 const w2s=(x,y)=>{const c=Math.cos(rot),s=Math.sin(rot);return[(x*c-y*s)*sc+tx,(x*s+y*c)*sc+ty]};
@@ -288,6 +290,18 @@ function paint(){
     ctx.fillStyle=selStreet&&r.s===selStreet.i?acc:r.mine?mineC:(r.est||(r.esp>=4&&r.esp!==7)?shop:house);ctx.beginPath();ctx.arc(X(r.x),Y(r.y),rad,0,7);ctx.fill()}
   ctx.setTransform(dpr,0,0,dpr,0,0);ctx.textAlign='center';ctx.textBaseline='middle';
   const halo=V('--halo'),ink=V('--ink'),mut=V('--mut'),cond=getComputedStyle(document.documentElement).getPropertyValue('--cond');
+  /* nomes das cidades: aparecem com o mapa afastado e somem suavemente ao aproximar */
+  const ca=sc<.55?1:sc>1.3?0:1-(sc-.55)/.75;
+  if(ca>0&&!rt){const far=sc<.15,big=far?18:sc<.3?22:26,ff=getComputedStyle(document.body).fontFamily;
+    for(const c of CC){if(!c)continue;let[x,y]=w2s(c.x,c.y);if(x<-300||x>W+300||y<-80||y>H+80)continue;
+      ctx.save();ctx.globalAlpha=ca;ctx.lineJoin='round';
+      if(far){ctx.fillStyle=V('--card');ctx.beginPath();ctx.arc(x,y,7,0,7);ctx.fill();ctx.fillStyle=V('--acc');ctx.beginPath();ctx.arc(x,y,4.5,0,7);ctx.fill();y-=34}
+      try{ctx.letterSpacing=far?'2px':'3px'}catch(e){}ctx.font=`700 ${big}px ${cond}`;const t=c.name.toLocaleUpperCase('pt-BR'),tw=ctx.measureText(t).width;
+      x=Math.max(tw/2+14,Math.min(W-tw/2-14,x));
+      ctx.lineWidth=7;ctx.strokeStyle=halo;ctx.strokeText(t,x,y-8);ctx.fillStyle=ink;ctx.fillText(t,x,y-8);
+      try{ctx.letterSpacing='2px'}catch(e){}ctx.font=`600 ${far?10:11}px ${ff}`;
+      ctx.lineWidth=4;ctx.strokeText('PARANÁ',x,y+big/2+6);ctx.fillStyle=mut;ctx.fillText('PARANÁ',x,y+big/2+6);
+      ctx.restore()}}
   if(sc>.3){ctx.font=`600 ${sc>1.5?14:12}px ${getComputedStyle(document.body).fontFamily}`;const boxes=[],seen=new Map();
     WAYS.forEach((w,i)=>{if(!w.name||!vis[i]||(w.cls===4&&sc<.8))return;let bl=0,bk=0;for(let k=1;k<w.ids.length;k++){const l=Math.hypot(NX[w.ids[k]]-NX[w.ids[k-1]],NY[w.ids[k]]-NY[w.ids[k-1]]);if(l>bl){bl=l;bk=k}}
       const tw=ctx.measureText(w.name).width;if(bl*sc<tw*.9)return;const a=w.ids[bk-1],b=w.ids[bk];const[mx,my]=w2s((NX[a]+NX[b])/2,(NY[a]+NY[b])/2);if(mx<0||my<0||mx>W||my>H)return;
@@ -505,7 +519,7 @@ const up=e=>{if(!ptrs.has(e.pointerId))return;ptrs.delete(e.pointerId);clearTime
 mapEl.addEventListener('pointerup',up);mapEl.addEventListener('pointercancel',up);
 mapEl.addEventListener('wheel',e=>{e.preventDefault();anim=null;follow=false;zoomAt(Math.exp(-e.deltaY*.0015),e.clientX,e.clientY)},{passive:false});
 let lastTap=0;
-function tap(px,py){if(pick)return;const now=Date.now();if(now-lastTap<300){animZoom(2,px,py);lastTap=0;return}lastTap=now;if(nav)return;
+function tap(px,py){if(pick)return;if(sc<.3&&!nav){for(let i=0;i<CC.length;i++){const c=CC[i];if(!c)continue;const[u,v]=w2s(c.x,c.y);if(Math.hypot(u-px,v-py)<60||(sc<.15&&Math.hypot(u-px,v+34-py)<60)){setCity(i);home();return}}}const now=Date.now();if(now-lastTap<300){animZoom(2,px,py);lastTap=0;return}lastTap=now;if(nav)return;
   let best=null,bd=22;for(const r of R){const[u,v]=w2s(r.x,r.y);const d=Math.hypot(u-px,v-py);if(d<bd){bd=d;best=r}}
   setTimeout(()=>{if(lastTap!==now)return;if(best){showRec(best);return}
     const[x,y]=s2w(px,py);const s=snap(x,y,Math.max(8,20/sc));if(!s)return;hiWay=s.w;const w=WAYS[s.w];
